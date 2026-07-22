@@ -81,7 +81,7 @@ function clean(string $val): string {
 
 function jsonResponse(bool $success, array $data=[], string $error=''): void {
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success'=>$success,'data'=>$data,'error'=>$error], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success'=>$success,'data'=>$data,'error'=>$error. $e->getMessage()], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

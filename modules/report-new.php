@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/lang.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../config/dictionaries.php'; // NEW
 requireAuth();
 
 $pageTitle = 'تقرير جديد | New Report';
@@ -65,176 +66,20 @@ if ($reportId > 0) {
 // Default report number for new report
 $newReportNumber = empty($report) ? generateReportNumber() : $report['report_number'];
 
-// Inspection check definitions (Pages 3-4)
-$engineChecks = [
-    ['key'=>'irregular_work',      'ar'=>'عمل غير منتظم في المحرك',           'en'=>'Irregular engine operation'],
-    ['key'=>'engine_noise',        'ar'=>'صوت سلبي من المحرك',                'en'=>'Abnormal engine noise'],
-    ['key'=>'gearbox_noise',       'ar'=>'صوت سلبي من الشنجمان',              'en'=>'Gearbox noise'],
-    ['key'=>'gear_knock',          'ar'=>'ضربات أثناء تغيير الغيار',          'en'=>'Knocking during gear change'],
-    ['key'=>'water_oil_mix',       'ar'=>'خليط ماء ـ زيت في المحرك',          'en'=>'Water-oil mix in engine'],
-    ['key'=>'compression_needed',  'ar'=>'هل تحتاج السيارة قياس ضغط المحرك', 'en'=>'Engine compression test needed'],
-    ['key'=>'urgent_service',      'ar'=>'هل تحتاج السيارة خدمة صيانة طارئة','en'=>'Urgent maintenance needed'],
-    ['key'=>'steam_blow',          'ar'=>'نفخ بخار من المحرك',                'en'=>'Steam blowing from engine'],
-    ['key'=>'injector_noise',      'ar'=>'صوت سلبي من الحاقن',                'en'=>'Injector noise'],
-    ['key'=>'sprayer_noise',       'ar'=>'صوت سلبي عند تشغيل المرش',          'en'=>'Sprayer noise on startup'],
-    ['key'=>'exhaust_manifold',    'ar'=>'صوت او تسريب من مشعب العادم',       'en'=>'Exhaust manifold leak/noise'],
-    ['key'=>'diff_noise',          'ar'=>'صوت سلبي من الدفرنسيه',             'en'=>'Differential noise'],
-    ['key'=>'black_smoke',         'ar'=>'دخان أسود من عادم السيارة',          'en'=>'Black smoke from exhaust'],
-    ['key'=>'white_smoke',         'ar'=>'دخان أبيض من عادم السيارة',         'en'=>'White smoke from exhaust'],
-    ['key'=>'engine_oil_leak',     'ar'=>'تسريب زيت من المحرك',               'en'=>'Engine oil leak'],
-    ['key'=>'gearbox_oil_leak',    'ar'=>'تسريب زيت من منطقة الشنجمان',       'en'=>'Gearbox oil leak'],
-    ['key'=>'diff_oil_leak',       'ar'=>'تسريب زيت من الدفرنسيه',            'en'=>'Differential oil leak'],
-    ['key'=>'turbo_oil_leak',      'ar'=>'تسريب زيت من منطقة التوربو',        'en'=>'Turbo oil leak'],
-    ['key'=>'intercooler_leak',    'ar'=>'تسريب زيت من المبرد الداخلي',       'en'=>'Intercooler oil leak'],
-    ['key'=>'coolant_leak',        'ar'=>'تسريب ماء من المحرك',               'en'=>'Coolant leak from engine'],
-    ['key'=>'fuel_leak',           'ar'=>'تسريب من نظام الوقود',              'en'=>'Fuel system leak'],
-    ['key'=>'belts_condition',     'ar'=>'الأحزمة المرئية بالعين',            'en'=>'Visible belts condition'],
-    ['key'=>'gearbox_condition',   'ar'=>'نظام الغيار',                       'en'=>'Gearbox system condition'],
-    ['key'=>'turbo_condition',     'ar'=>'نظام التوربو',                      'en'=>'Turbo system condition'],
-    ['key'=>'oil_level',           'ar'=>'مستوى زيت المحرك',                 'en'=>'Engine oil level'],
-    ['key'=>'coolant_ratio',       'ar'=>'نسبة ماء تبريد المحرك',             'en'=>'Coolant ratio'],
-    ['key'=>'coolant_condition',   'ar'=>'حالة ماء تبريد المحرك',             'en'=>'Coolant condition'],
-    ['key'=>'antifreeze',          'ar'=>'حالة مانع التجمد',                  'en'=>'Antifreeze condition'],
-    ['key'=>'brake_fluid',         'ar'=>'نسبة هيدروليك الفرامل',             'en'=>'Brake fluid level'],
-    ['key'=>'plastic_parts',       'ar'=>'الأقسام البلاستيكية',               'en'=>'Plastic parts condition'],
-];
+// ============================================================
+// USE CENTRAL DICTIONARIES TO BUILD SECTIONS AND PANELS
+// ============================================================
+$inspectionSections = getInspectionSections(); // returns array of sections with 'key', 'ar', 'en', 'items'
+$bodyPanelGroups = getBodyPanelGroups(); // returns array of groups with title and panels
 
-$underbodyChecks = [
-    ['key'=>'combustion_leak',     'ar'=>'تسريب في غرفة اشتعال المحرك',      'en'=>'Combustion chamber leak'],
-    ['key'=>'front_play',          'ar'=>'فراغ في التنظيم الأمامي',           'en'=>'Front alignment play'],
-    ['key'=>'rear_play',           'ar'=>'فراغ في التنظيم الخلفي',            'en'=>'Rear alignment play'],
-    ['key'=>'steering_play',       'ar'=>'فراغ في نظام عجلة القيادة',         'en'=>'Steering wheel play'],
-    ['key'=>'power_steering_leak', 'ar'=>'تسريب زيت من مضخة عجلة القيادة',   'en'=>'Power steering pump leak'],
-    ['key'=>'steering_box_leak',   'ar'=>'تسريب زيت من علبة عجلة القيادة',   'en'=>'Steering box leak'],
-    ['key'=>'steering_shaft_leak', 'ar'=>'تسريب زيت من محور منفاخ عجلة القيادة','en'=>'Steering shaft leak'],
-    ['key'=>'brake_center_leak',   'ar'=>'تسريب زيت من مراكز الفرامل',       'en'=>'Brake center leak'],
-    ['key'=>'brake_hose_leak',     'ar'=>'تسريب زيت أو تفسخ في خراطيم الفرامل','en'=>'Brake hose leak/deterioration'],
-    ['key'=>'front_brake_disc',    'ar'=>'حالة القرص الأمامي لنظام الفرامل', 'en'=>'Front brake disc condition'],
-    ['key'=>'front_brake_pad',     'ar'=>'حالة البلطة الأمامية لنظام الفرامل','en'=>'Front brake pad condition'],
-    ['key'=>'rear_brake_disc',     'ar'=>'حالة القرص الخلفية لنظام الفرامل', 'en'=>'Rear brake disc condition'],
-    ['key'=>'rear_brake_pad',      'ar'=>'حالة البلطة الخلفية لنظام الفرامل','en'=>'Rear brake pad condition'],
-    ['key'=>'exhaust_system',      'ar'=>'فحص نظام عادم السيارة',             'en'=>'Exhaust system check'],
-    ['key'=>'particle_filter',     'ar'=>'فحص فلتر الجسيمات',                'en'=>'Particle filter check'],
-    ['key'=>'tires_condition',     'ar'=>'فحص حالة العجالات',                 'en'=>'Tires condition'],
-    ['key'=>'rims_condition',      'ar'=>'فحص حالة الجانط',                   'en'=>'Rims condition'],
-    ['key'=>'underbody_frame',     'ar'=>'فحص هيكل التثبيت السفلي الحامي للمحرك','en'=>'Underbody engine protection frame'],
-];
-
-$electricalChecks = [
-    ['key'=>'engine_ecu',      'ar'=>'قيد أضرار اللوحة المركزية للمحرك',          'en'=>'Engine ECU fault codes'],
-    ['key'=>'airbag_ecu',      'ar'=>'قيد أضرار اللوحة المركزية للوسادة الهوائية','en'=>'Airbag ECU fault codes'],
-    ['key'=>'ac_ecu',          'ar'=>'قيد أضرار اللوحة المركزية للتكيف',          'en'=>'AC ECU fault codes'],
-    ['key'=>'battery',         'ar'=>'حالة البطارية',                              'en'=>'Battery condition'],
-    ['key'=>'brake_ecu',       'ar'=>'قيد أضرار اللوحة المركزية للفرامل',         'en'=>'Brake ECU fault codes'],
-    ['key'=>'gearbox_ecu',     'ar'=>'قيد أضرار اللوحة المركزية للشونجمان',       'en'=>'Gearbox ECU fault codes'],
-    ['key'=>'ac_pressure',     'ar'=>'حالة ضغط التكييف',                           'en'=>'AC pressure condition'],
-    ['key'=>'wiring',          'ar'=>'تأسيسات الكهرباء',                           'en'=>'Electrical wiring'],
-];
-
-$airbagChecks = [
-    ['key'=>'driver_airbag',   'ar'=>'فحص الوسادة الهوائية الخاصة بالسائق',    'en'=>"Driver's airbag check"],
-    ['key'=>'passenger_airbag','ar'=>'فحص الوسادة الهوائية الخاصة بالركاب',    'en'=>"Passenger's airbag check"],
-    ['key'=>'side_curtain',    'ar'=>'فحص الستارة الهوائية الجانبية',           'en'=>'Side curtain airbag check'],
-    ['key'=>'airbag_ecu_main', 'ar'=>'قيد أضرار اللوحة الرئيسية للوسادة الهوائية','en'=>'Main airbag ECU fault codes'],
-];
-
-$interiorChecks = [
-    ['key'=>'ac_heating',      'ar'=>'نظام التكييف والتدفئة',        'en'=>'AC & heating system'],
-    ['key'=>'interior_lights', 'ar'=>'الإضاءة الداخلية',             'en'=>'Interior lighting'],
-    ['key'=>'dashboard',       'ar'=>'لوحة القيادة',                  'en'=>'Dashboard'],
-    ['key'=>'horn',            'ar'=>'فحص الزمور',                    'en'=>'Horn check'],
-    ['key'=>'remote_controls', 'ar'=>'أزرار التحكم عن بعد',          'en'=>'Remote control buttons'],
-    ['key'=>'exterior_lights', 'ar'=>'الإضاءة الخارجية',             'en'=>'Exterior lighting'],
-    ['key'=>'sunroof',         'ar'=>'فتحة سقف',                     'en'=>'Sunroof'],
-    ['key'=>'headlight_wash',  'ar'=>'غسل المصباح',                   'en'=>'Headlight washer'],
-];
-
-$accessoriesChecks = [
-    ['key'=>'windows',         'ar'=>'فحوصات النوافذ',               'en'=>'Windows check'],
-    ['key'=>'wipers',          'ar'=>'نظام المساحات',                 'en'=>'Wiper system'],
-    ['key'=>'interior_trim',   'ar'=>'التنجيد الداخلي',              'en'=>'Interior trim'],
-    ['key'=>'seatbelts',       'ar'=>'أحزمة الأمان',                 'en'=>'Seatbelts'],
-    ['key'=>'radio',           'ar'=>'فحص نظام الراديو',             'en'=>'Radio system'],
-    ['key'=>'interior_issues', 'ar'=>'تشوهات / مشاكل داخل السيارة', 'en'=>'Interior deformations / issues'],
-    ['key'=>'steering_wheel',  'ar'=>'عجلة القيادة',                 'en'=>'Steering wheel'],
-    ['key'=>'mirrors',         'ar'=>'فحوصات المرايا',               'en'=>'Mirrors check'],
-    ['key'=>'door_trim',       'ar'=>'تنجيد الأبواب',                'en'=>'Door trim'],
-    ['key'=>'seats',           'ar'=>'المقاعد',                      'en'=>'Seats'],
-    ['key'=>'spare_wheel',     'ar'=>'حالة العجلة الاحتياط',         'en'=>'Spare wheel condition'],
-    ['key'=>'parking_sensors', 'ar'=>'فحص حساسات الباركينغ',         'en'=>'Parking sensors'],
-    ['key'=>'gear_lever',      'ar'=>'ذراع الغيار',                  'en'=>'Gear lever'],
-];
-
-// Body panels definition
-$bodyPanelGroups = [
-    'right' => [
-        'title_ar' => 'يمين', 'title_en' => 'Right Side',
-        'panels' => [
-            ['key'=>'right_front_fender','ar'=>'الرفراف الأيمن الأمامي',    'en'=>'Right Front Fender'],
-            ['key'=>'right_front_door',  'ar'=>'الباب الأيمن الأمامي',      'en'=>'Right Front Door'],
-            ['key'=>'right_rear_door',   'ar'=>'الباب الأيمن الخلفي',       'en'=>'Right Rear Door'],
-            ['key'=>'right_rear_fender', 'ar'=>'الرفراف الأيمن الخلفي',     'en'=>'Right Rear Fender'],
-            ['key'=>'right_sill',        'ar'=>'مارشبيل اليمين',            'en'=>'Right Sill'],
-            ['key'=>'right_a_pillar',    'ar'=>'العمود الأيمن الأمامي',     'en'=>'Right A-Pillar'],
-            ['key'=>'right_b_pillar',    'ar'=>'عمود الباب الأيمن الأمامي','en'=>'Right B-Pillar'],
-            ['key'=>'right_roof_rail',   'ar'=>'عمود السقف الأيمن',         'en'=>'Right Roof Rail'],
-            ['key'=>'right_c_pillar',    'ar'=>'العمود الأيمن الخلفي',      'en'=>'Right C-Pillar'],
-            ['key'=>'right_d_pillar',    'ar'=>'العمود الأيمن المتوسط',     'en'=>'Right D-Pillar'],
-            ['key'=>'right_platform',    'ar'=>'المنصة الحامية اليمين',     'en'=>'Right Platform'],
-            ['key'=>'right_chassis',     'ar'=>'الشاسيه الأيمن',            'en'=>'Right Chassis'],
-        ]
-    ],
-    'left' => [
-        'title_ar' => 'يسار', 'title_en' => 'Left Side',
-        'panels' => [
-            ['key'=>'left_front_fender', 'ar'=>'الرفراف الأيسر الأمامي',   'en'=>'Left Front Fender'],
-            ['key'=>'left_front_door',   'ar'=>'الباب الأيسر الأمامي',     'en'=>'Left Front Door'],
-            ['key'=>'left_rear_door',    'ar'=>'الباب الأيسر الخلفي',      'en'=>'Left Rear Door'],
-            ['key'=>'left_rear_fender',  'ar'=>'الرفراف الأيسر الخلفي',    'en'=>'Left Rear Fender'],
-            ['key'=>'left_sill',         'ar'=>'مارشبيل اليسار',           'en'=>'Left Sill'],
-            ['key'=>'left_a_pillar',     'ar'=>'العمود الأيسر الأمامي',    'en'=>'Left A-Pillar'],
-            ['key'=>'left_b_pillar',     'ar'=>'عمود الباب الأيسر الأمامي','en'=>'Left B-Pillar'],
-            ['key'=>'left_roof_rail',    'ar'=>'عمود السقف الأيسري',       'en'=>'Left Roof Rail'],
-            ['key'=>'left_c_pillar',     'ar'=>'العمود الأيسر الخلفي',     'en'=>'Left C-Pillar'],
-            ['key'=>'left_d_pillar',     'ar'=>'العمود الأيسر المتوسط',    'en'=>'Left D-Pillar'],
-            ['key'=>'left_platform',     'ar'=>'المنصة الحامية اليسار',    'en'=>'Left Platform'],
-            ['key'=>'left_chassis',      'ar'=>'الشاسيه الأيسر',           'en'=>'Left Chassis'],
-        ]
-    ],
-    'top' => [
-        'title_ar' => 'فوق', 'title_en' => 'Top',
-        'panels' => [
-            ['key'=>'hood',           'ar'=>'غطاء المحرك',       'en'=>'Hood'],
-            ['key'=>'roof',           'ar'=>'السقف',              'en'=>'Roof'],
-            ['key'=>'trunk_top',      'ar'=>'أعلى غطاء الصندوق', 'en'=>'Trunk Lid Top'],
-        ]
-    ],
-    'front_rear' => [
-        'title_ar' => 'أمام / خلف', 'title_en' => 'Front / Rear',
-        'panels' => [
-            ['key'=>'trunk_door',     'ar'=>'غطاء الصندوق',      'en'=>'Trunk Door'],
-            ['key'=>'rear_panel',     'ar'=>'البانيل الخلفي',    'en'=>'Rear Panel'],
-            ['key'=>'trunk_floor',    'ar'=>'صاج الصندوق',       'en'=>'Trunk Floor'],
-            ['key'=>'rear_bumper',    'ar'=>'الدعامية الخلفية',  'en'=>'Rear Bumper'],
-            ['key'=>'front_bumper',   'ar'=>'الدعامية الأمامية', 'en'=>'Front Bumper'],
-            ['key'=>'front_panel',    'ar'=>'البانيل الأمامي',   'en'=>'Front Panel'],
-        ]
-    ],
-];
-
-$resultOptions = [
-    'good'        => ['ar'=>'جيد',      'en'=>'Good'],
-    'none'        => ['ar'=>'لا يوجد',  'en'=>'None'],
-    'light'       => ['ar'=>'خفيف',     'en'=>'Light'],
-    'medium'      => ['ar'=>'متوسط',    'en'=>'Medium'],
-    'bad'         => ['ar'=>'سيئ',      'en'=>'Bad'],
-    'not_checked' => ['ar'=>'لم يفحص',  'en'=>'Not Checked'],
-];
-
+$resultOptions = RESULT_OPTIONS;
 $panelStatusOptions = PANEL_STATUS;
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
+
+<!-- THE REST OF THE FILE (HTML + JS) REMAINS EXACTLY THE SAME -->
+<!-- The only changes are that we removed the local array definitions and use the global ones -->
 
 <div class="page-header">
     <h1>
@@ -516,9 +361,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="number" name="brake[<?= $w['side'] ?>_force]" placeholder="%" step="0.1" style="flex:1"
                         value="<?= clean($brakes[$w['side'].'_force'] ?? '') ?>">
                     <select name="brake[<?= $w['side'] ?>_status]" style="width:120px">
-                        <option value="good"    <?= ($brakes[$w['side'].'_status'] ?? 'good') === 'good'    ? 'selected':'' ?>>جيد / Good</option>
-                        <option value="warning" <?= ($brakes[$w['side'].'_status'] ?? '')     === 'warning' ? 'selected':'' ?>>تحذير / Warn</option>
-                        <option value="fail"    <?= ($brakes[$w['side'].'_status'] ?? '')     === 'fail'    ? 'selected':'' ?>>فشل / Fail</option>
+                        <?php foreach (STATUS_GOOD_WARNING_FAIL as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($brakes[$w['side'].'_status'] ?? 'good') === $val ? 'selected' : '' ?>>
+                            <?= $label['ar'] ?> / <?= $label['en'] ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -534,8 +381,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="number" name="brake[front_deviation_pct]" placeholder="%" step="0.1" style="flex:1"
                         value="<?= clean($brakes['front_deviation_pct'] ?? '') ?>">
                     <select name="brake[front_deviation_status]" style="width:120px">
-                        <option value="pass" <?= ($brakes['front_deviation_status'] ?? 'pass') === 'pass' ? 'selected':'' ?>>نجح / Pass</option>
-                        <option value="fail" <?= ($brakes['front_deviation_status'] ?? '')     === 'fail' ? 'selected':'' ?>>فشل / Fail</option>
+                        <?php foreach (DEVIATION_STATUS as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($brakes['front_deviation_status'] ?? 'pass') === $val ? 'selected' : '' ?>>
+                            <?= $label['ar'] ?> / <?= $label['en'] ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -545,8 +395,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="number" name="brake[rear_deviation_pct]" placeholder="%" step="0.1" style="flex:1"
                         value="<?= clean($brakes['rear_deviation_pct'] ?? '') ?>">
                     <select name="brake[rear_deviation_status]" style="width:120px">
-                        <option value="pass" <?= ($brakes['rear_deviation_status'] ?? 'pass') === 'pass' ? 'selected':'' ?>>نجح / Pass</option>
-                        <option value="fail" <?= ($brakes['rear_deviation_status'] ?? '')     === 'fail' ? 'selected':'' ?>>فشل / Fail</option>
+                        <?php foreach (DEVIATION_STATUS as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($brakes['rear_deviation_status'] ?? 'pass') === $val ? 'selected' : '' ?>>
+                            <?= $label['ar'] ?> / <?= $label['en'] ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -556,9 +409,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="number" name="brake[handbrake_deviation_pct]" placeholder="%" step="0.1" style="flex:1"
                         value="<?= clean($brakes['handbrake_deviation_pct'] ?? '') ?>">
                     <select name="brake[handbrake_status]" style="width:120px">
-                        <option value="good"    <?= ($brakes['handbrake_status'] ?? 'good') === 'good'    ? 'selected':'' ?>>جيد / Good</option>
-                        <option value="warning" <?= ($brakes['handbrake_status'] ?? '')     === 'warning' ? 'selected':'' ?>>تحذير / Warn</option>
-                        <option value="fail"    <?= ($brakes['handbrake_status'] ?? '')     === 'fail'    ? 'selected':'' ?>>فشل / Fail</option>
+                        <?php foreach (STATUS_GOOD_WARNING_FAIL as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($brakes['handbrake_status'] ?? 'good') === $val ? 'selected' : '' ?>>
+                            <?= $label['ar'] ?> / <?= $label['en'] ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -573,9 +428,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="number" name="brake[slip_front_pct]" placeholder="%" step="0.1" style="flex:1"
                         value="<?= clean($brakes['slip_front_pct'] ?? '') ?>">
                     <select name="brake[slip_front_status]" style="width:120px">
-                        <option value="good"    <?= ($brakes['slip_front_status'] ?? 'good') === 'good'    ? 'selected':'' ?>>جيد / Good</option>
-                        <option value="warning" <?= ($brakes['slip_front_status'] ?? '')     === 'warning' ? 'selected':'' ?>>تحذير / Warn</option>
-                        <option value="fail"    <?= ($brakes['slip_front_status'] ?? '')     === 'fail'    ? 'selected':'' ?>>فشل / Fail</option>
+                        <?php foreach (STATUS_GOOD_WARNING_FAIL as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($brakes['slip_front_status'] ?? 'good') === $val ? 'selected' : '' ?>>
+                            <?= $label['ar'] ?> / <?= $label['en'] ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -585,9 +442,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="number" name="brake[slip_rear_pct]" placeholder="%" step="0.1" style="flex:1"
                         value="<?= clean($brakes['slip_rear_pct'] ?? '') ?>">
                     <select name="brake[slip_rear_status]" style="width:120px">
-                        <option value="good"    <?= ($brakes['slip_rear_status'] ?? 'good') === 'good'    ? 'selected':'' ?>>جيد / Good</option>
-                        <option value="warning" <?= ($brakes['slip_rear_status'] ?? '')     === 'warning' ? 'selected':'' ?>>تحذير / Warn</option>
-                        <option value="fail"    <?= ($brakes['slip_rear_status'] ?? '')     === 'fail'    ? 'selected':'' ?>>فشل / Fail</option>
+                        <?php foreach (STATUS_GOOD_WARNING_FAIL as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($brakes['slip_rear_status'] ?? 'good') === $val ? 'selected' : '' ?>>
+                            <?= $label['ar'] ?> / <?= $label['en'] ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -618,9 +477,11 @@ require_once __DIR__ . '/../includes/header.php';
                     <input type="number" name="suspension[<?= $w['side'] ?>_pct]" placeholder="%" step="0.1" style="flex:1"
                         value="<?= clean($suspension[$w['side'].'_pct'] ?? '') ?>">
                     <select name="suspension[<?= $w['side'] ?>_status]" style="width:120px">
-                        <option value="good"    <?= ($suspension[$w['side'].'_status'] ?? 'good') === 'good'    ? 'selected':'' ?>>جيد / Good</option>
-                        <option value="warning" <?= ($suspension[$w['side'].'_status'] ?? '')     === 'warning' ? 'selected':'' ?>>تحذير / Warn</option>
-                        <option value="fail"    <?= ($suspension[$w['side'].'_status'] ?? '')     === 'fail'    ? 'selected':'' ?>>فشل / Fail</option>
+                        <?php foreach (STATUS_GOOD_WARNING_FAIL as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($suspension[$w['side'].'_status'] ?? 'good') === $val ? 'selected' : '' ?>>
+                            <?= $label['ar'] ?> / <?= $label['en'] ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -639,12 +500,8 @@ require_once __DIR__ . '/../includes/header.php';
      STEP 3 — ENGINE, UNDERBODY CHECKS
      ================================================================ -->
 <div class="wizard-panel" id="panel-2">
-    <?php
-    $checkSections = [
-        ['key'=>'engine',    'ar'=>'فحوصات المحرك',           'en'=>'Engine Checks',    'items'=>$engineChecks],
-        ['key'=>'underbody', 'ar'=>'التنظيم الأمامي / الطقم السفلي', 'en'=>'Underbody / Alignment', 'items'=>$underbodyChecks],
-    ];
-    foreach ($checkSections as $section): ?>
+    <?php foreach ($inspectionSections as $section): ?>
+        <?php if ($section['key'] !== 'engine' && $section['key'] !== 'underbody') continue; ?>
     <div class="card">
         <div class="card-header">
             <span class="ar"><?= $section['ar'] ?></span>
@@ -670,7 +527,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <select name="ic[<?= $section['key'] ?>][<?= $item['key'] ?>][result]"
                                 class="result-select"
                                 onchange="colorSelect(this)">
-                            <?php foreach ($resultOptions as $val => $label): ?>
+                            <?php foreach (RESULT_OPTIONS as $val => $label): ?>
                             <option value="<?= $val ?>" <?= $savedResult === $val ? 'selected' : '' ?>>
                                 <?= $label['ar'] ?> / <?= $label['en'] ?>
                             </option>
@@ -698,14 +555,8 @@ require_once __DIR__ . '/../includes/header.php';
      STEP 4 — ELECTRICAL, AIRBAG, INTERIOR, ACCESSORIES
      ================================================================ -->
 <div class="wizard-panel" id="panel-3">
-    <?php
-    $checkSections4 = [
-        ['key'=>'electrical',   'ar'=>'فحوصات النظام الكهربائي والإلكتروني', 'en'=>'Electrical & Electronic Checks', 'items'=>$electricalChecks],
-        ['key'=>'airbag',       'ar'=>'فحوصات نظام الوسادة الهوائية',       'en'=>'Airbag System Checks',           'items'=>$airbagChecks],
-        ['key'=>'interior',     'ar'=>'فحوصات الأقسام الداخلية والخارجية',  'en'=>'Interior & Exterior Checks',     'items'=>$interiorChecks],
-        ['key'=>'accessories',  'ar'=>'فحوصات حزمة الإكسسوارات والراحة',   'en'=>'Accessories & Comfort Checks',   'items'=>$accessoriesChecks],
-    ];
-    foreach ($checkSections4 as $section): ?>
+    <?php foreach ($inspectionSections as $section): ?>
+        <?php if ($section['key'] === 'engine' || $section['key'] === 'underbody') continue; ?>
     <div class="card">
         <div class="card-header">
             <span class="ar"><?= $section['ar'] ?></span>
@@ -731,7 +582,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <select name="ic[<?= $section['key'] ?>][<?= $item['key'] ?>][result]"
                                 class="result-select"
                                 onchange="colorSelect(this)">
-                            <?php foreach ($resultOptions as $val => $label): ?>
+                            <?php foreach (RESULT_OPTIONS as $val => $label): ?>
                             <option value="<?= $val ?>" <?= $savedResult === $val ? 'selected' : '' ?>>
                                 <?= $label['ar'] ?> / <?= $label['en'] ?>
                             </option>
@@ -837,7 +688,7 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="form-group">
                 <label><span class="ar"><?= $d['ar'] ?></span> <span class="en"><?= $d['en'] ?></span></label>
                 <select name="ic[body_details][<?= $d['key'] ?>][result]" class="result-select" onchange="colorSelect(this)">
-                    <?php foreach ($resultOptions as $val => $label): ?>
+                    <?php foreach (RESULT_OPTIONS as $val => $label): ?>
                     <option value="<?= $val ?>"><?= $label['ar'] ?> / <?= $label['en'] ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -861,8 +712,11 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="form-group">
             <label><span class="ar">الحالة</span> <span class="en">Status</span></label>
             <select name="status">
-                <option value="draft"    <?= ($report['status'] ?? 'draft') === 'draft'    ? 'selected':'' ?>>مسودة / Draft</option>
-                <option value="complete" <?= ($report['status'] ?? '')       === 'complete' ? 'selected':'' ?>>مكتمل / Complete</option>
+                <?php foreach (REPORT_STATUS as $val => $label): ?>
+                <option value="<?= $val ?>" <?= ($report['status'] ?? 'draft') === $val ? 'selected' : '' ?>>
+                    <?= $label['ar'] ?> / <?= $label['en'] ?>
+                </option>
+                <?php endforeach; ?>
             </select>
         </div>
     </div>

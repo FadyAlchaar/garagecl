@@ -1,12 +1,17 @@
 <?php
+// ============================================================
+// ADVANCED SEARCH
+// ============================================================
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/lang.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../config/dictionaries.php';
+
 requireAuth();
 
 $pdo       = db();
-$pageTitle = t('search_title');
+$pageTitle = uiText('search_title');
 $results   = [];
 $searched  = false;
 
@@ -86,52 +91,60 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><span class="ar"><?= t('search_title') ?></span><span class="en">Advanced Search</span></h1>
+    <h1>
+        <span class="ar"><?= uiText('search_title') ?></span>
+        <span class="en"><?= uiText('search_title') ?></span>
+    </h1>
 </div>
 
 <!-- FILTER FORM -->
 <div class="card">
     <div class="card-header">
-        <span class="ar">فلاتر البحث</span><span class="en">Search Filters</span>
+        <span class="ar"><?= uiText('search_filters') ?></span>
+        <span class="en"><?= uiText('search_filters') ?></span>
     </div>
     <form method="GET" action="">
         <div class="grid-3">
             <div class="form-group">
-                <label><span class="ar"><?= t('search_plate') ?></span></label>
+                <label><?= uiText('search_plate') ?></label>
                 <input type="text" name="plate" value="<?= clean($_REQUEST['plate'] ?? '') ?>" placeholder="ABC 1234">
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_chassis') ?></span></label>
+                <label><?= uiText('search_chassis') ?></label>
                 <input type="text" name="chassis" value="<?= clean($_REQUEST['chassis'] ?? '') ?>" style="direction:ltr">
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_customer') ?></span></label>
+                <label><?= uiText('search_customer') ?></label>
                 <input type="text" name="customer" value="<?= clean($_REQUEST['customer'] ?? '') ?>">
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_brand') ?></span></label>
+                <label><?= uiText('search_brand') ?></label>
                 <input type="text" name="brand" value="<?= clean($_REQUEST['brand'] ?? '') ?>">
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_date_from') ?></span></label>
+                <label><?= uiText('search_date_from') ?></label>
                 <input type="date" name="date_from" value="<?= clean($_REQUEST['date_from'] ?? '') ?>">
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_date_to') ?></span></label>
+                <label><?= uiText('search_date_to') ?></label>
                 <input type="date" name="date_to" value="<?= clean($_REQUEST['date_to'] ?? '') ?>">
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_status') ?></span></label>
+                <label><?= uiText('search_status') ?></label>
                 <select name="status">
-                    <option value=""><?= t('all') ?></option>
-                    <option value="complete" <?= ($_REQUEST['status'] ?? '')==='complete'?'selected':'' ?>>✅ <?= t('status_complete') ?></option>
-                    <option value="draft"    <?= ($_REQUEST['status'] ?? '')==='draft'   ?'selected':'' ?>>📝 <?= t('status_draft') ?></option>
+                    <option value=""><?= uiText('all') ?></option>
+                    <option value="complete" <?= ($_REQUEST['status'] ?? '')==='complete'?'selected':'' ?>>
+                        ✅ <?= uiText('status_complete') ?>
+                    </option>
+                    <option value="draft" <?= ($_REQUEST['status'] ?? '')==='draft'?'selected':'' ?>>
+                        📝 <?= uiText('status_draft') ?>
+                    </option>
                 </select>
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_fuel') ?></span></label>
+                <label><?= uiText('search_fuel') ?></label>
                 <select name="fuel_type">
-                    <option value=""><?= t('all') ?></option>
+                    <option value=""><?= uiText('all') ?></option>
                     <?php foreach (FUEL_TYPES as $val => $names): ?>
                     <option value="<?= $val ?>" <?= ($_REQUEST['fuel_type'] ?? '')===$val?'selected':'' ?>>
                         <?= $names['ar'] ?> / <?= $names['en'] ?>
@@ -140,9 +153,9 @@ require_once __DIR__ . '/../includes/header.php';
                 </select>
             </div>
             <div class="form-group">
-                <label><span class="ar"><?= t('search_tech') ?></span></label>
+                <label><?= uiText('search_tech') ?></label>
                 <select name="technician_id">
-                    <option value=""><?= t('all') ?></option>
+                    <option value=""><?= uiText('all') ?></option>
                     <?php foreach ($technicians as $tech): ?>
                     <option value="<?= $tech['id'] ?>" <?= ($_REQUEST['technician_id'] ?? '')==$tech['id']?'selected':'' ?>>
                         <?= clean($tech['full_name_ar']) ?>
@@ -150,14 +163,22 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div class="form-group">
+                <label><?= uiText('search_year') ?></label>
+                <input type="number" name="year" min="1980" max="2030" value="<?= clean($_REQUEST['year'] ?? '') ?>" placeholder="e.g. 2020">
+            </div>
         </div>
 
         <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.5rem">
-            <button type="submit" class="btn btn-primary">🔍 <?= t('btn_search') ?></button>
-            <a href="<?= APP_URL ?>/modules/search.php" class="btn btn-outline"><?= t('btn_clear') ?></a>
+            <button type="submit" class="btn btn-primary">
+                🔍 <?= uiText('btn_search') ?>
+            </button>
+            <a href="<?= APP_URL ?>/modules/search.php" class="btn btn-outline">
+                <?= uiText('btn_clear') ?>
+            </a>
             <?php if ($searched && count($results)): ?>
             <a href="<?= APP_URL ?>/api/export.php?<?= http_build_query($_GET) ?>" class="btn btn-secondary">
-                📊 <?= t('btn_export_csv') ?>
+                📊 <?= uiText('btn_export_csv') ?>
             </a>
             <?php endif; ?>
         </div>
@@ -168,29 +189,33 @@ require_once __DIR__ . '/../includes/header.php';
 <?php if ($searched): ?>
 <div class="card">
     <div class="card-header">
-        <span class="ar"><?= t('search_results') ?></span>
-        <span class="en">— <?= count($results) ?> <?= t('records') ?></span>
+        <span class="ar"><?= uiText('search_results') ?></span>
+        <span class="en"><?= uiText('search_results') ?></span>
+        <span style="margin-left:auto; font-size:0.85rem; color:var(--text-muted);">
+            <?= count($results) ?> <?= uiText('records') ?>
+        </span>
     </div>
 
     <?php if (empty($results)): ?>
     <div style="text-align:center;padding:2rem;color:var(--text-muted)">
         <div style="font-size:2.5rem">🔍</div>
-        <p class="ar"><?= t('no_results') ?></p>
+        <p class="ar"><?= uiText('no_results') ?></p>
+        <p class="en"><?= uiText('no_results') ?></p>
     </div>
     <?php else: ?>
     <div style="overflow-x:auto">
     <table class="reports-table">
         <thead>
             <tr>
-                <th><?= t('report_number') ?></th>
-                <th><?= t('plate_number') ?></th>
-                <th><?= t('brand') ?> / <?= t('model') ?></th>
-                <th><?= t('fuel_type') ?></th>
-                <th><?= t('customer_name') ?></th>
-                <th><?= t('technician') ?></th>
-                <th><?= t('date_inspection') ?></th>
-                <th><?= t('search_status') ?></th>
-                <th><?= t('actions') ?></th>
+                <th><?= uiText('report_number') ?></th>
+                <th><?= uiText('plate_number') ?></th>
+                <th><?= uiText('brand') ?> / <?= uiText('model') ?></th>
+                <th><?= uiText('fuel') ?></th>
+                <th><?= uiText('customer_name') ?></th>
+                <th><?= uiText('technician') ?></th>
+                <th><?= uiText('date_inspection') ?></th>
+                <th><?= uiText('search_status') ?></th>
+                <th><?= uiText('actions') ?></th>
             </tr>
         </thead>
         <tbody>
@@ -205,13 +230,13 @@ require_once __DIR__ . '/../includes/header.php';
             <td><?= $r['date_inspection'] ?? '—' ?></td>
             <td>
                 <span class="badge <?= $r['status']==='complete'?'badge-good':'badge-warning' ?>">
-                    <?= t('status_' . $r['status']) ?>
+                    <?= $r['status'] === 'complete' ? uiText('status_complete') : uiText('status_draft') ?>
                 </span>
             </td>
             <td>
                 <div style="display:flex;gap:.3rem">
-                    <a href="<?= APP_URL ?>/modules/report-view.php?id=<?= $r['id'] ?>" class="btn btn-secondary btn-sm">👁️</a>
-                    <a href="<?= APP_URL ?>/pdf/generate.php?id=<?= $r['id'] ?>" target="_blank" class="btn btn-primary btn-sm">🖨️</a>
+                    <a href="<?= APP_URL ?>/modules/report-view.php?id=<?= $r['id'] ?>" class="btn btn-secondary btn-sm" title="<?= uiText('view') ?>">👁️</a>
+                    <a href="<?= APP_URL ?>/pdf/generate.php?id=<?= $r['id'] ?>" target="_blank" class="btn btn-primary btn-sm" title="<?= uiText('print_pdf') ?>">🖨️</a>
                 </div>
             </td>
         </tr>

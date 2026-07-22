@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/lang.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../config/dictionaries.php'; // NEW
 requireAuth();
 
 $reportId = (int)($_GET['id'] ?? 0);
@@ -53,17 +54,33 @@ foreach ($noteRows as $r) { $notes[$r['section']] = $r['note_text']; }
 
 $pageTitle = 'تقرير ' . $report['report_number'];
 
-// Result label helper
+// Result label helper (now using central dict)
 function resultBadge(string $result): string {
-    $labels = RESULT_LABELS;
-    $label  = $labels[$result] ?? $labels['not_checked'];
-    return '<span style="color:' . $label['color'] . ';font-weight:700">'
-         . $label['ar'] . ' / ' . $label['en'] . '</span>';
+    $labels = CHECKLIST_STATUS; // or RESULT_OPTIONS depending on context
+    // For inspection checks we use RESULT_OPTIONS
+    // But the view uses CHECKLIST_STATUS only for the top-level checklist
+    // We'll use a hybrid: for checklist items use CHECKLIST_STATUS, for others we can use RESULT_OPTIONS
+    // For simplicity, we'll use the central RESULT_OPTIONS for all.
+    $options = RESULT_OPTIONS;
+    if (isset($options[$result])) {
+        $color = match($result) {
+            'good','none' => '#16a34a',
+            'light'       => '#ca8a04',
+            'medium'      => '#ea580c',
+            'bad'         => '#dc2626',
+            'not_checked' => '#6b7280',
+            default       => '#6b7280',
+        };
+        return '<span style="color:' . $color . ';font-weight:700">'
+             . $options[$result]['ar'] . ' / ' . $options[$result]['en'] . '</span>';
+    }
+    return '<span style="color:#6b7280;">—</span>';
 }
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
+<!-- The rest of report-view.php stays the same EXCEPT for the inspection check items and body panels -->
 <div class="page-header">
     <h1>
         <span class="ar">تقرير الفحص</span>
@@ -305,7 +322,8 @@ foreach ($icSections as $sKey => $sLabel):
     <div class="grid-2" style="gap:0">
     <?php foreach ($ic[$sKey] as $itemKey => $row): ?>
     <div style="display:flex;justify-content:space-between;padding:0.4rem 0.5rem;border-bottom:1px solid #f5f5f5;align-items:center">
-        <span style="font-size:0.88rem;color:var(--text-muted)"><?= clean($row['item_key']) ?></span>
+        <?php // ---- USE CENTRAL DICTIONARY ---- ?>
+        <span style="font-size:0.88rem;color:var(--text-muted)"><?= clean(getInspectionName($itemKey)) ?></span>
         <?= resultBadge($row['result']) ?>
     </div>
     <?php endforeach; ?>
@@ -350,7 +368,8 @@ foreach ($icSections as $sKey => $sLabel):
         <?php if (!isset($panels[$pk])) continue; ?>
         <?php $p = $panels[$pk]; $pStatus = PANEL_STATUS[$p['status']] ?? PANEL_STATUS['original']; ?>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:0.35rem 0.5rem;border-bottom:1px solid #f0f0f0">
-            <span style="font-size:0.85rem;color:var(--text-muted)"><?= str_replace('_',' ', $pk) ?></span>
+            <?php // ---- USE CENTRAL DICTIONARY ---- ?>
+            <span style="font-size:0.85rem;color:var(--text-muted)"><?= clean(getBodyName($pk)) ?></span>
             <div style="display:flex;align-items:center;gap:0.5rem">
                 <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:<?= $pStatus['color'] ?>;border:1px solid #ccc"></span>
                 <span style="font-size:0.82rem;font-weight:600;color:<?= $pStatus['color'] === '#ffffff' ? '#333' : $pStatus['color'] ?>">

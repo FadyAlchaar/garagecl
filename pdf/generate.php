@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/dictionaries.php'; // NEW
 
 $reportId = (int)($_GET['id'] ?? 0);
 if (!$reportId) { die('Invalid report ID'); }
@@ -74,7 +75,7 @@ $mpdf->autoScriptToLang = true;
 $mpdf->autoLangToFont   = true;
 
 // ============================================================
-// HELPERS
+// HELPERS (status and panel display) - now using central dicts
 // ============================================================
 function pclean($v): string { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 
@@ -401,15 +402,18 @@ foreach ($allSections as $sKey => $sLabel):
         $bKey = $keys2[$i] ?? null;
         $a    = $aKey ? $col1[$aKey] : null;
         $b    = $bKey ? $col2[$bKey] : null;
+        // ---- USE CENTRAL DICTIONARY ----
+        $aLabel = $a ? getInspectionName($a['item_key']) : '';
+        $bLabel = $b ? getInspectionName($b['item_key']) : '';
     ?>
     <tr>
-        <td><?= $a ? pclean(str_replace('_',' ',$a['item_key'])) : '' ?></td>
+        <td><?= pclean($aLabel) ?></td>
         <td><?php if ($a): ?>
             <span style="color:<?= statusColor($a['result']) ?>;font-weight:bold">
                 <?= statusAr($a['result']) ?>
             </span>
         <?php endif; ?></td>
-        <td><?= $b ? pclean(str_replace('_',' ',$b['item_key'])) : '' ?></td>
+        <td><?= pclean($bLabel) ?></td>
         <td><?php if ($b): ?>
             <span style="color:<?= statusColor($b['result']) ?>;font-weight:bold">
                 <?= statusAr($b['result']) ?>
@@ -469,7 +473,11 @@ $bodyPanelGroupsPdf = [
         <?php foreach ($grp['keys'] as $pk): ?>
         <?php $p = $panels[$pk] ?? null; ?>
         <tr>
-            <td style="font-size:8pt;color:#555"><?= pclean(str_replace('_',' ',$pk)) ?></td>
+            <?php 
+            // ---- USE CENTRAL DICTIONARY ----
+            $panelName = getBodyName($pk);
+            ?>
+            <td style="font-size:8pt;color:#555"><?= pclean($panelName) ?></td>
             <td style="font-size:8pt;text-align:center">
                 <?php if ($p): ?>
                 <span style="color:<?= panelColor($p['status'])==='#ffffff'?'#333':panelColor($p['status']) ?>;font-weight:bold">
