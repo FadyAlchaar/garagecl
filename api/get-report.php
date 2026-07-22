@@ -1,0 +1,20 @@
+<?php
+require_once __DIR__.'/../config/db.php';
+require_once __DIR__.'/../config/app.php';
+require_once __DIR__.'/../config/lang.php';
+require_once __DIR__.'/../config/auth.php';
+requireAuth();
+$id=(int)($_GET['id']??0);
+if(!$id) jsonResponse(false,[],'Invalid ID');
+$pdo=db();
+$stmt=$pdo->prepare("SELECT r.*,u.full_name_ar as tech_name FROM reports r LEFT JOIN users u ON r.technician_id=u.id WHERE r.id=?");
+$stmt->execute([$id]); $report=$stmt->fetch();
+if(!$report) jsonResponse(false,[],'Not found');
+$stmt=$pdo->prepare("SELECT * FROM dyno_results WHERE report_id=?"); $stmt->execute([$id]); $report['dyno']=$stmt->fetch()?:[];
+$stmt=$pdo->prepare("SELECT * FROM brake_results WHERE report_id=?"); $stmt->execute([$id]); $report['brakes']=$stmt->fetch()?:[];
+$stmt=$pdo->prepare("SELECT * FROM suspension_results WHERE report_id=?"); $stmt->execute([$id]); $report['suspension']=$stmt->fetch()?:[];
+$stmt=$pdo->prepare("SELECT * FROM inspection_checks WHERE report_id=?"); $stmt->execute([$id]); $report['checks']=$stmt->fetchAll();
+$stmt=$pdo->prepare("SELECT * FROM body_panels WHERE report_id=?"); $stmt->execute([$id]); $report['panels']=$stmt->fetchAll();
+$stmt=$pdo->prepare("SELECT * FROM section_notes WHERE report_id=?"); $stmt->execute([$id]); $report['notes']=$stmt->fetchAll();
+$stmt=$pdo->prepare("SELECT * FROM report_images WHERE report_id=?"); $stmt->execute([$id]); $report['images']=$stmt->fetchAll();
+jsonResponse(true,$report);
