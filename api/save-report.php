@@ -20,19 +20,19 @@ try {
         'chassis_number'  => $_POST['chassis_number']  ?? '',
         'brand'           => $_POST['brand']           ?? '',
         'model'           => $_POST['model']           ?? '',
-        'year'            => $_POST['year']            ?: null,
+        'year'            => $_POST['year']            ?? null,
         'fuel_type'       => $_POST['fuel_type']       ?? 'Petrol',
-        'mileage'         => $_POST['mileage']         ?: null,
+        'mileage'         => $_POST['mileage']         ?? null,
         'package_type'    => $_POST['package_type']    ?? '',
         'date_inspection' => $_POST['date_inspection'] ?? date('Y-m-d'),
-        'time_in'         => $_POST['time_in']         ?: null,
-        'time_out'        => $_POST['time_out']        ?: null,
+        'time_in'         => $_POST['time_in']         ?? null,
+        'time_out'        => $_POST['time_out']        ?? null,
         'license_seen'    => isset($_POST['license_seen'])?(int)$_POST['license_seen']:0,
         'customer_name'   => $_POST['customer_name']   ?? '',
         'customer_phone'  => $_POST['customer_phone']  ?? '',
         'seller_name'     => $_POST['seller_name']     ?? '',
         'seller_phone'    => $_POST['seller_phone']    ?? '',
-        'technician_id'   => $_POST['technician_id']   ?: null,
+        'technician_id'   => $_POST['technician_id'] ?? null,
         'status'          => $_POST['status']          ?? 'draft',
     ];
 
@@ -62,7 +62,7 @@ try {
         $d=$_POST['dyno'];
         $pdo->prepare("DELETE FROM dyno_results WHERE report_id=?")->execute([$reportId]);
         $pdo->prepare("INSERT INTO dyno_results (report_id,original_kw,original_hp,measured_kw,measured_hp,performance_percent) VALUES (?,?,?,?,?,?)")
-            ->execute([$reportId,$d['original_kw']?:null,$d['original_hp']?:null,$d['measured_kw']?:null,$d['measured_hp']?:null,$d['performance_percent']?:null]);
+            ->execute([$reportId,$d['original_kw']??null,$d['original_hp']??null,$d['measured_kw']??null,$d['measured_hp']??null,$d['performance_percent']??null]);
     }
 
     // ---- BRAKES (19 columns, 19 values — bugfix applied) ----
@@ -79,15 +79,15 @@ try {
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
             ->execute([
                 $reportId,
-                $b['front_left_force']?:null,     $b['front_left_status']??'good',
-                $b['front_right_force']?:null,    $b['front_right_status']??'good',
-                $b['rear_left_force']?:null,      $b['rear_left_status']??'good',
-                $b['rear_right_force']?:null,     $b['rear_right_status']??'good',
-                $b['front_deviation_pct']?:null,  $b['front_deviation_status']??'pass',
-                $b['rear_deviation_pct']?:null,   $b['rear_deviation_status']??'pass',
-                $b['handbrake_deviation_pct']?:null,$b['handbrake_status']??'good',
-                $b['slip_front_pct']?:null,       $b['slip_front_status']??'good',
-                $b['slip_rear_pct']?:null,        $b['slip_rear_status']??'good',
+                $b['front_left_force']??null,     $b['front_left_status']??'good',
+                $b['front_right_force']??null,    $b['front_right_status']??'good',
+                $b['rear_left_force']??null,      $b['rear_left_status']??'good',
+                $b['rear_right_force']??null,     $b['rear_right_status']??'good',
+                $b['front_deviation_pct']??null,  $b['front_deviation_status']??'pass',
+                $b['rear_deviation_pct']??null,   $b['rear_deviation_status']??'pass',
+                $b['handbrake_deviation_pct']??null,$b['handbrake_status']??'good',
+                $b['slip_front_pct']??null,       $b['slip_front_status']??'good',
+                $b['slip_rear_pct']??null,        $b['slip_rear_status']??'good',
             ]);
     }
 
@@ -96,7 +96,7 @@ try {
         $s=$_POST['suspension'];
         $pdo->prepare("DELETE FROM suspension_results WHERE report_id=?")->execute([$reportId]);
         $pdo->prepare("INSERT INTO suspension_results (report_id,front_left_pct,front_left_status,front_right_pct,front_right_status,rear_left_pct,rear_left_status,rear_right_pct,rear_right_status) VALUES (?,?,?,?,?,?,?,?,?)")
-            ->execute([$reportId,$s['front_left_pct']?:null,$s['front_left_status']??'good',$s['front_right_pct']?:null,$s['front_right_status']??'good',$s['rear_left_pct']?:null,$s['rear_left_status']??'good',$s['rear_right_pct']?:null,$s['rear_right_status']??'good']);
+            ->execute([$reportId,$s['front_left_pct']??null,$s['front_left_status']??'good',$s['front_right_pct']??null,$s['front_right_status']??'good',$s['rear_left_pct']??null,$s['rear_left_status']??'good',$s['rear_right_pct']??null,$s['rear_right_status']??'good']);
     }
 
     // ---- INSPECTION CHECKS ----
