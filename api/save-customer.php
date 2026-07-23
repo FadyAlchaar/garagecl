@@ -22,7 +22,7 @@ $status    = in_array($_POST['status'] ?? 'active', ['active','inactive']) ? $_P
 // Validation
 $errors = [];
 if (empty($name_ar)) $errors[] = 'Arabic name is required.';
-if (empty($name_en)) $errors[] = 'English name is required.';
+// if (empty($name_en)) $errors[] = 'English name is required.';
 if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors[] = 'Invalid email format.';
 }

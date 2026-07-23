@@ -434,6 +434,64 @@ foreach ($allSections as $sKey => $sLabel):
 <pagebreak/>
 <h2>خريطة الهيكل الخارجي &nbsp;|&nbsp; External Body Panel Map</h2>
 
+<!-- ============================================================
+     ATTACHED DIAGRAMS IN PDF
+     ============================================================ -->
+<?php
+$stmt = $pdo->prepare("
+    SELECT d.* 
+    FROM report_diagrams rd
+    JOIN diagrams d ON rd.diagram_id = d.id
+    WHERE rd.report_id = ?
+    ORDER BY d.category, d.sort_order
+");
+$stmt->execute([$reportId]);
+$pdfDiagrams = $stmt->fetchAll();
+?>
+
+<?php if (!empty($pdfDiagrams)): ?>
+<pagebreak/>
+<h2>🖼️ الرسوم البيانية المرفقة / Attached Diagrams</h2>
+
+<table width="100%" style="margin-bottom:10px">
+    <tr>
+        <td style="font-size:9pt;color:#666">
+            <?= count($pdfDiagrams) ?> <?= uiText('diagrams') ?>
+        </td>
+    </tr>
+</table>
+
+<table width="100%" style="border-collapse:collapse">
+    <?php foreach ($pdfDiagrams as $i => $d): ?>
+        <?php if ($i % 2 == 0): ?>
+        <tr>
+        <?php endif; ?>
+        
+        <td width="50%" style="text-align:center;padding:10px;vertical-align:top;border:1px solid #eee">
+            <h3 style="font-size:10pt;margin:0 0 8px 0;color:#1a1a2e">
+                <?= $d['name_ar'] ?> / <?= $d['name_en'] ?>
+            </h3>
+            <?php if (!empty($d['image_path']) && file_exists(APP_ROOT . '/' . $d['image_path'])): ?>
+            <img src="<?= APP_ROOT . '/' . $d['image_path'] ?>" style="max-width:100%;max-height:250px;border-radius:4px">
+            <?php else: ?>
+            <div style="padding:40px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;font-size:2rem;color:#ccc">
+                🖼️
+            </div>
+            <?php endif; ?>
+            <?php if (!empty($d['category'])): ?>
+            <div style="font-size:7pt;color:#888;margin-top:4px">
+                <?= uiText('category_' . $d['category']) ?? ucfirst($d['category']) ?>
+            </div>
+            <?php endif; ?>
+        </td>
+        
+        <?php if ($i % 2 == 1 || $i == count($pdfDiagrams) - 1): ?>
+        </tr>
+        <?php endif; ?>
+    <?php endforeach; ?>
+</table>
+<?php endif; ?>
+
 <!-- Legend -->
 <table style="margin-bottom:10px">
 <tr>

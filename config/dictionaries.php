@@ -418,6 +418,24 @@ if (!defined('UI_TRANSLATIONS')) {
         'fuel'                => ['ar' => 'الوقود',                 'en' => 'Fuel'],
         'year'                => ['ar' => 'السنة',                  'en' => 'Year'],
         'search_year'         => ['ar' => 'سنة الصنع',              'en' => 'Year'],
+        // ============================================================
+        // Add to UI_TRANSLATIONS
+        // ============================================================
+        'diagrams'           => ['ar' => 'الرسوم البيانية',        'en' => 'Diagrams'],
+        'diagram_library'    => ['ar' => 'مكتبة الرسوم البيانية',   'en' => 'Diagram Library'],
+        'upload_diagram'     => ['ar' => 'رفع رسم بياني',           'en' => 'Upload Diagram'],
+        'select_diagrams'    => ['ar' => 'اختر الرسوم البيانية',    'en' => 'Select Diagrams'],
+        'attached_diagrams'  => ['ar' => 'الرسوم المرفقة',          'en' => 'Attached Diagrams'],
+        'click_to_view_full' => ['ar' => 'اضغط للتكبير',            'en' => 'Click to enlarge'],
+        'no_diagrams'        => ['ar' => 'لا توجد رسوم بيانية',     'en' => 'No diagrams found'],
+        'category_chassis'   => ['ar' => 'هيكل السيارة',            'en' => 'Chassis'],
+        'category_engine'    => ['ar' => 'المحرك',                  'en' => 'Engine'],
+        'category_suspension'=> ['ar' => 'نظام التعليق',             'en' => 'Suspension'],
+        'category_interior'  => ['ar' => 'المقصورة الداخلية',       'en' => 'Interior'],
+        'category_electrical'=> ['ar' => 'النظام الكهربائي',         'en' => 'Electrical'],
+        'diagram_saved'      => ['ar' => 'تم حفظ الرسم البياني',     'en' => 'Diagram saved'],
+        'diagram_deleted'    => ['ar' => 'تم حذف الرسم البياني',     'en' => 'Diagram deleted'],
+        'confirm_delete_diagram' => ['ar' => 'هل أنت متأكد من حذف هذا الرسم البياني؟', 'en' => 'Are you sure you want to delete this diagram?'],
     ]);
 }
 

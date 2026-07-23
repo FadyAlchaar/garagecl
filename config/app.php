@@ -79,9 +79,24 @@ function clean(string $val): string {
     return htmlspecialchars(trim($val), ENT_QUOTES, 'UTF-8');
 }
 
-function jsonResponse(bool $success, array $data=[], string $error=''): void {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success'=>$success,'data'=>$data,'error'=>$error. $e->getMessage()], JSON_UNESCAPED_UNICODE);
+function jsonResponse($success, $data = [], $error = '') {
+    // Set JSON header
+    header('Content-Type: application/json');
+    
+    // Build response
+    $response = [
+        'success' => $success,
+        'data'    => $data,
+        'error'   => $error
+    ];
+    
+    // If error is an Exception object, extract its message
+    if ($error instanceof Exception) {
+        $response['error'] = $error->getMessage();
+    }
+    
+    // Output JSON and stop execution
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
     exit;
 }
 

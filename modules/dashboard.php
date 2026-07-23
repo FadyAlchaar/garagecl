@@ -92,6 +92,22 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 </form>
 
+<!-- Bulk Delete Button (outside table) -->
+<div style="display:flex;gap:0.75rem;align-items:center;margin:1rem 0;flex-wrap:wrap">
+    <button onclick="bulkDelete()" class="btn btn-danger" id="bulkDeleteBtn" style="display:none;">
+        🗑️ <span class="ar">حذف المحدد</span>
+        <span class="en">Delete Selected</span>
+        (<span id="selectedCount">0</span>)
+    </button>
+    <span id="selectInfo" style="color:var(--text-muted);font-size:0.85rem;display:none;">
+        <span class="ar">تم اختيار</span>
+        <span class="en">Selected</span>
+        <span id="selectedCountText">0</span>
+        <span class="ar">تقرير</span>
+        <span class="en">reports</span>
+    </span>
+</div>
+
 <!-- REPORTS TABLE -->
 <div class="card">
     <div class="card-header">
@@ -113,6 +129,7 @@ require_once __DIR__ . '/../includes/header.php';
             <table class="reports-table">
                 <thead>
                     <tr>
+                        <th style="width:40px;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
                         <th><span class="ar">رقم التقرير</span><br><span class="en" style="font-weight:400;font-size:0.72rem">Report No.</span></th>
                         <th><span class="ar">رقم اللوحة</span><br><span class="en" style="font-weight:400;font-size:0.72rem">Plate</span></th>
                         <th><span class="ar">الماركة / الموديل</span><br><span class="en" style="font-weight:400;font-size:0.72rem">Brand / Model</span></th>
@@ -125,6 +142,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <tbody>
                     <?php foreach ($reports as $r): ?>
                     <tr>
+                        <td style="text-align:center;"><input type="checkbox" name="report_ids[]" value="<?= $r['id'] ?>" class="report-checkbox" onchange="updateBulkDeleteButton()"></td>
                         <td><strong><?= clean($r['report_number']) ?></strong></td>
                         <td><?= clean($r['plate_number'] ?? '—') ?></td>
                         <td><?= clean($r['brand'] ?? '') ?> <?= clean($r['model'] ?? '') ?> <?= $r['year'] ? '(' . $r['year'] . ')' : '' ?></td>
@@ -138,7 +156,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <?php endif; ?>
                         </td>
                         <td>
-                            <div class="actions">
+                            <div class="actions" style="display:flex;gap:4px;flex-wrap:wrap;">
                                 <a href="<?= APP_URL ?>/modules/report-new.php?id=<?= $r['id'] ?>"
                                    class="btn btn-outline btn-sm"
                                    title="تعديل | Edit">✏️</a>
@@ -160,3 +178,90 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
+
+<script>
+// Bulk Delete Functions
+function toggleAll(master) {
+    const checkboxes = document.querySelectorAll('.report-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+    updateBulkDeleteButton();
+}
+
+function updateBulkDeleteButton() {
+    const checkboxes = document.querySelectorAll('.report-checkbox:checked');
+    const count = checkboxes.length;
+    const btn = document.getElementById('bulkDeleteBtn');
+    const info = document.getElementById('selectInfo');
+    const countText = document.getElementById('selectedCount');
+    const countText2 = document.getElementById('selectedCountText');
+    
+    if (count > 0) {
+        btn.style.display = 'inline-block';
+        info.style.display = 'inline';
+        countText.textContent = count;
+        countText2.textContent = count;
+    } else {
+        btn.style.display = 'none';
+        info.style.display = 'none';
+    }
+}
+
+function bulkDelete() {
+    const checkboxes = document.querySelectorAll('.report-checkbox:checked');
+    if (checkboxes.length === 0) return;
+    
+    const ids = Array.from(checkboxes).map(cb => cb.value);
+    const count = ids.length;
+    const confirmMsg = '⚠️ هل أنت متأكد من حذف ' + count + ' تقرير؟\nAre you sure you want to delete ' + count + ' reports?';
+    
+    if (!confirm(confirmMsg)) return;
+    
+    // Show loading
+    const btn = document.getElementById('bulkDeleteBtn');
+    btn.textContent = '⏳ ...';
+    btn.disabled = true;
+    
+    // Send DELETE request
+    fetch('<?= APP_URL ?>/api/bulk-delete.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ids })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            if (typeof toastSuccess === 'function') {
+                toastSuccess(res.message || 'Reports deleted successfully');
+            } else {
+                alert('✅ ' + res.message);
+            }
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            if (typeof toastError === 'function') {
+                toastError(res.message || 'Delete failed');
+            } else {
+                alert('❌ ' + (res.message || 'Delete failed'));
+            }
+            btn.textContent = '🗑️ Delete Selected';
+            btn.disabled = false;
+        }
+    })
+    .catch(() => {
+        if (typeof toastError === 'function') {
+            toastError('Network error');
+        } else {
+            alert('❌ Network error');
+        }
+        btn.textContent = '🗑️ Delete Selected';
+        btn.disabled = false;
+    });
+}
+
+// Update on page load and any checkbox change
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.report-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkDeleteButton);
+    });
+    updateBulkDeleteButton();
+});
+</script>

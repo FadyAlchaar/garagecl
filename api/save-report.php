@@ -9,6 +9,22 @@ if (!isPost()) jsonResponse(false,[],'POST only');
 
 $pdo      = db();
 $reportId = (int)($_POST['report_id']??0);
+$reportNumber = $_POST['report_number'] ?? '';
+
+// ============================================================
+// [FIX] If report_id is 0 but we have a report_number,
+// try to find the existing report and use its ID
+// ============================================================
+if ($reportId === 0 && !empty($reportNumber)) {
+    $stmt = $pdo->prepare("SELECT id FROM reports WHERE report_number = ?");
+    $stmt->execute([$reportNumber]);
+    $existing = $stmt->fetch();
+    if ($existing) {
+        $reportId = (int)$existing['id'];
+        // Also update the POST to ensure consistency
+        $_POST['report_id'] = $reportId;
+    }
+}
 
 try {
     $pdo->beginTransaction();
@@ -36,16 +52,36 @@ try {
         'status'          => $_POST['status']          ?? 'draft',
     ];
 
+    // ============================================================
+    // [FIX] If reportId > 0 OR we found an existing report by number
+    // ============================================================
     if ($reportId > 0) {
+        // UPDATE: Use the provided or found ID
         $sets = implode(', ', array_map(fn($k)=>"`$k`=:$k", array_keys($fields)));
         $stmt = $pdo->prepare("UPDATE reports SET $sets WHERE id=:id");
         $fields['id'] = $reportId;
         $stmt->execute($fields);
     } else {
-        $cols = implode(',', array_map(fn($k)=>"`$k`", array_keys($fields)));
-        $vals = implode(',', array_map(fn($k)=>":$k", array_keys($fields)));
-        $pdo->prepare("INSERT INTO reports ($cols) VALUES ($vals)")->execute($fields);
-        $reportId = (int)$pdo->lastInsertId();
+        // INSERT: New report
+        // Double-check that the report number doesn't already exist (safety)
+        $checkStmt = $pdo->prepare("SELECT id FROM reports WHERE report_number = ?");
+        $checkStmt->execute([$fields['report_number']]);
+        $existing = $checkStmt->fetch();
+        
+        if ($existing) {
+            // It exists! Use UPDATE instead
+            $reportId = (int)$existing['id'];
+            $sets = implode(', ', array_map(fn($k)=>"`$k`=:$k", array_keys($fields)));
+            $stmt = $pdo->prepare("UPDATE reports SET $sets WHERE id=:id");
+            $fields['id'] = $reportId;
+            $stmt->execute($fields);
+        } else {
+            // Truly new report
+            $cols = implode(',', array_map(fn($k)=>"`$k`", array_keys($fields)));
+            $vals = implode(',', array_map(fn($k)=>":$k", array_keys($fields)));
+            $pdo->prepare("INSERT INTO reports ($cols) VALUES ($vals)")->execute($fields);
+            $reportId = (int)$pdo->lastInsertId();
+        }
     }
 
     // ---- CHECKLIST ----
@@ -131,6 +167,18 @@ try {
             if (trim($text)==='') continue;
             $stmt->execute([$reportId,$section,$text]);
         }
+    }
+
+    // ---- DIAGRAMS ----
+    if (isset($_POST['diagrams']) && is_array($_POST['diagrams'])) {
+        $pdo->prepare("DELETE FROM report_diagrams WHERE report_id=?")->execute([$reportId]);
+        $stmt = $pdo->prepare("INSERT INTO report_diagrams (report_id, diagram_id) VALUES (?, ?)");
+        foreach ($_POST['diagrams'] as $diagramId) {
+            $stmt->execute([$reportId, (int)$diagramId]);
+        }
+    } else {
+        // If no diagrams selected, remove all
+        $pdo->prepare("DELETE FROM report_diagrams WHERE report_id=?")->execute([$reportId]);
     }
 
     $pdo->commit();

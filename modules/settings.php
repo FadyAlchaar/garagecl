@@ -4,7 +4,7 @@ require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/lang.php';
 require_once __DIR__ . '/../config/auth.php';
 requireAuth();
-requireRole('manager');
+requireRole('admin');
 
 $pdo     = db();
 $msg     = '';
@@ -91,7 +91,140 @@ function sendSmsApi(string $phone, string $message, array $s): array {
     }
 }
 
-// ── HANDLE POST ───────────────────────────────────────────
+// ── HANDLE DIAGRAM DELETE ───────────────────────────────
+if (isset($_GET['delete_diagram']) && is_numeric($_GET['delete_diagram'])) {
+    $id = (int)$_GET['delete_diagram'];
+    // Get image path
+    $stmt = $pdo->prepare("SELECT image_path, thumbnail_path FROM diagrams WHERE id = ?");
+    $stmt->execute([$id]);
+    $d = $stmt->fetch();
+    if ($d) {
+        if (!empty($d['image_path']) && file_exists(APP_ROOT . '/' . $d['image_path'])) {
+            unlink(APP_ROOT . '/' . $d['image_path']);
+        }
+        if (!empty($d['thumbnail_path']) && file_exists(APP_ROOT . '/' . $d['thumbnail_path'])) {
+            unlink(APP_ROOT . '/' . $d['thumbnail_path']);
+        }
+    }
+    $pdo->prepare("DELETE FROM diagrams WHERE id = ?")->execute([$id]);
+    $msg = '✅ تم حذف الرسم البياني'; $msgType = 'success';
+    // Redirect to remove query param
+    header('Location: ' . APP_URL . '/modules/settings.php?tab=diagrams');
+    exit;
+}
+
+// ── HANDLE DIAGRAM UPLOAD ───────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_diagram'])) {
+    $name_ar = trim($_POST['name_ar'] ?? '');
+    $name_en = trim($_POST['name_en'] ?? '');
+    $category = trim($_POST['category'] ?? '');
+    $key = trim($_POST['key'] ?? '');
+
+    $errors = [];
+    if (empty($name_ar)) $errors[] = 'Arabic name required';
+    if (empty($category)) $errors[] = 'Category required';
+
+    // ---- Generate a valid unique key ----
+    if (empty($key)) {
+        // Use name_en as base, fallback to name_ar
+        $base = !empty($name_en) ? $name_en : $name_ar;
+        $key = strtolower(str_replace(' ', '_', $base));
+        $key = preg_replace('/[^a-z0-9_]/', '', $key);
+        // If still empty, use a random string
+        if (empty($key)) {
+            $key = 'diagram_' . time() . '_' . rand(100, 999);
+        }
+    }
+
+    // ---- Ensure key is unique ----
+    $originalKey = $key;
+    $suffix = 0;
+    while (true) {
+        $check = $pdo->prepare("SELECT id FROM diagrams WHERE `key` = ?");
+        $check->execute([$key]);
+        if (!$check->fetch()) {
+            break; // key is unique
+        }
+        $suffix++;
+        $key = $originalKey . '_' . $suffix;
+    }
+
+    // ---- Handle file upload ----
+    if (!isset($_FILES['diagram_image']) || $_FILES['diagram_image']['error'] !== UPLOAD_ERR_OK) {
+        $errors[] = 'Please select an image';
+    } else {
+        $file = $_FILES['diagram_image'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowed = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+        if (!in_array($ext, $allowed)) {
+            $errors[] = 'Invalid file type. Allowed: SVG, PNG, JPG, GIF, WEBP';
+        } elseif ($file['size'] > 5 * 1024 * 1024) {
+            $errors[] = 'File too large. Max 5MB.';
+        } else {
+            $uploadDir = APP_ROOT . '/assets/diagrams/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+            // Use the final unique key for filename
+            $filename = $key . '.' . $ext;
+            $targetPath = $uploadDir . $filename;
+
+            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                $image_path = 'assets/diagrams/' . $filename;
+                $thumbnail_path = 'assets/diagrams/' . $filename; // fallback
+
+                // Generate thumbnail for non-SVG
+                if ($ext !== 'svg') {
+                    $thumbPath = $uploadDir . 'thumb_' . $filename;
+                    $src = imagecreatefromstring(file_get_contents($targetPath));
+                    if ($src) {
+                        list($width, $height) = getimagesize($targetPath);
+                        $thumbWidth = 300;
+                        $thumbHeight = ($height / $width) * $thumbWidth;
+                        $thumb = imagecreatetruecolor($thumbWidth, $thumbHeight);
+                        imagecopyresampled($thumb, $src, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $width, $height);
+                        switch ($ext) {
+                            case 'png': imagepng($thumb, $thumbPath); break;
+                            case 'jpg':
+                            case 'jpeg': imagejpeg($thumb, $thumbPath, 80); break;
+                            case 'gif': imagegif($thumb, $thumbPath); break;
+                            case 'webp': imagewebp($thumb, $thumbPath, 80); break;
+                        }
+                        imagedestroy($thumb);
+                        imagedestroy($src);
+                        $thumbnail_path = 'assets/diagrams/thumb_' . $filename;
+                    }
+                } else {
+                    $thumbnail_path = $image_path;
+                }
+
+                // Insert into database
+                $stmt = $pdo->prepare("
+                    INSERT INTO diagrams (`key`, name_ar, name_en, category, image_path, thumbnail_path)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                $result = $stmt->execute([$key, $name_ar, $name_en, $category, $image_path, $thumbnail_path]);
+                if ($result) {
+                    $msg = '✅ تم رفع الرسم البياني بنجاح';
+                    $msgType = 'success';
+                } else {
+                    $errors[] = 'Database error';
+                    // Clean up uploaded file
+                    if (file_exists($targetPath)) unlink($targetPath);
+                    if (isset($thumbPath) && file_exists($thumbPath)) unlink($thumbPath);
+                }
+            } else {
+                $errors[] = 'Failed to move uploaded file';
+            }
+        }
+    }
+
+    if (!empty($errors)) {
+        $msg = '❌ ' . implode('<br>', $errors);
+        $msgType = 'error';
+    }
+}
+
+// ── HANDLE POST (workshop, smtp, sms) ──────────────────
 if (isPost()) {
     $section = $_POST['section'] ?? '';
 
@@ -160,6 +293,15 @@ if (isPost()) {
 $settings  = $pdo->query("SELECT * FROM settings LIMIT 1")->fetch() ?: [];
 $activeTab = $_GET['tab'] ?? 'workshop';
 $pageTitle = 'الإعدادات | Settings';
+
+// Get diagrams for the diagrams tab
+$diagrams = [];
+try {
+    $diagrams = $pdo->query("SELECT * FROM diagrams ORDER BY category, sort_order")->fetchAll();
+} catch (Exception $e) {
+    // Table might not exist yet
+}
+
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -177,6 +319,7 @@ require_once __DIR__ . '/../includes/header.php';
         ['workshop','🏪 معلومات الورشة','Workshop Info'],
         ['smtp',    '📧 إعدادات البريد','Email / SMTP'],
         ['sms',     '📱 إعدادات SMS',   'SMS API'],
+        ['diagrams','🖼️ الرسوم البيانية','Diagrams'],
     ] as [$id,$ar,$en]): ?>
     <a href="?tab=<?= $id ?>"
        style="padding:7px 18px;border-radius:7px;font-size:.9rem;font-weight:500;text-decoration:none;
@@ -446,6 +589,105 @@ require_once __DIR__ . '/../includes/header.php';
         </p>
     </div>
 </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<?php elseif ($activeTab === 'diagrams'): ?>
+<!-- DIAGRAMS TAB -->
+<div class="card">
+    <div class="card-header">
+        <span class="ar">🖼️ رفع رسم بياني جديد</span>
+        <span class="en">Upload New Diagram</span>
+    </div>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="upload_diagram" value="1">
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="required"><span class="ar">الاسم (عربي)</span><span class="en">Name (Arabic)</span></label>
+                <input type="text" name="name_ar" required>
+            </div>
+            <div class="form-group">
+                <label class="required"><span class="ar">الاسم (إنجليزي)</span><span class="en">Name (English)</span></label>
+                <input type="text" name="name_en" style="direction:ltr">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label><span class="ar">المفتاح (اختياري)</span><span class="en">Key (optional)</span></label>
+            <input type="text" name="key" style="direction:ltr" placeholder="e.g., chassis_full_view">
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:3px">
+                <span class="ar">سيتم إنشاؤه تلقائياً إذا تركته فارغاً</span>
+                <span class="en">Auto-generated if left empty</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="required"><span class="ar">التصنيف</span><span class="en">Category</span></label>
+            <select name="category" required>
+                <option value="">— <?= uiText('select') ?> —</option>
+                <option value="chassis">هيكل / Chassis</option>
+                <option value="engine">محرك / Engine</option>
+                <option value="suspension">تعليق / Suspension</option>
+                <option value="interior">داخلي / Interior</option>
+                <option value="electrical">كهرباء / Electrical</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="required"><span class="ar">الصورة</span><span class="en">Image</span></label>
+            <input type="file" name="diagram_image" accept=".svg,.png,.jpg,.jpeg,.gif,.webp" required>
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:3px">
+                SVG, PNG, JPG, GIF, WEBP — Max 5MB
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">💾 <span class="ar">رفع</span><span class="en">Upload</span></button>
+    </form>
+</div>
+
+<!-- List existing diagrams -->
+<div class="card">
+    <div class="card-header">
+        <span class="ar">الرسوم الموجودة</span>
+        <span class="en">Existing Diagrams</span>
+        <span style="margin-left:auto;font-size:.8rem;color:var(--text-muted);font-weight:normal">
+            <?= count($diagrams) ?> <?= uiText('diagrams') ?>
+        </span>
+    </div>
+
+    <?php if (empty($diagrams)): ?>
+    <div style="text-align:center;padding:2rem;color:var(--text-muted)">
+        <div style="font-size:3rem">🖼️</div>
+        <p><?= uiText('no_diagrams') ?></p>
+    </div>
+    <?php else: ?>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1.5rem">
+        <?php foreach ($diagrams as $d): ?>
+        <div style="border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center;background:var(--bg-card)">
+            <?php if (!empty($d['thumbnail_path']) && file_exists(APP_ROOT . '/' . $d['thumbnail_path'])): ?>
+            <img src="<?= APP_URL . '/' . $d['thumbnail_path'] ?>" alt="<?= $d['name_ar'] ?>" style="max-width:100%;max-height:100px;border-radius:4px">
+            <?php else: ?>
+            <div style="height:80px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:2rem">🖼️</div>
+            <?php endif; ?>
+            <div style="font-size:.85rem;font-weight:600;margin-top:.25rem">
+                <?= $d['name_ar'] ?>
+            </div>
+            <div style="font-size:.7rem;color:var(--text-muted)">
+                <?= $d['name_en'] ?>
+            </div>
+            <div style="font-size:.65rem;color:var(--text-muted);margin-top:2px">
+                <span class="badge badge-muted"><?= ucfirst($d['category'] ?? 'Uncategorized') ?></span>
+            </div>
+            <div style="margin-top:.5rem">
+                <a href="?tab=diagrams&delete_diagram=<?= $d['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('<?= uiText('confirm_delete_diagram') ?>')">
+                    🗑️ <?= uiText('delete') ?>
+                </a>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 

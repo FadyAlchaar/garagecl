@@ -53,7 +53,7 @@ require_once __DIR__ . '/../includes/header.php';
         <!-- Name (English) -->
         <div class="form-group">
             <label class="required"><span class="ar">الاسم (إنجليزي)</span><span class="en">Name (English)</span></label>
-            <input type="text" name="name_en" value="<?= clean($customer['name_en'] ?? '') ?>" style="direction:ltr" required>
+            <input type="text" name="name_en" value="<?= clean($customer['name_en'] ?? '') ?>" style="direction:ltr">
         </div>
 
         <!-- Phone -->
