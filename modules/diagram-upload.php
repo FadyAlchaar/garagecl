@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $errors = [];
     if (empty($name_ar)) $errors[] = 'Arabic name is required.';
-    if (empty($name_en)) $errors[] = 'English name is required.';
+    //if (empty($name_en)) $errors[] = 'English name is required.';
     if (empty($category)) $errors[] = 'Category is required.';
 
     // Check if key exists

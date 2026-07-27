@@ -102,10 +102,10 @@ $lang     = currentLang();
         <button type="submit" class="btn-login"><?= t('login_btn') ?></button>
     </form>
 
-    <div class="default-hint">
+    <!-- <div class="default-hint">
         Default: <strong>admin</strong> / <strong>Admin@1234</strong> — change after login
     </div>
-
+ -->
     <div class="lang-switch">
         <a href="?lang=ar" class="<?= $lang==='ar'?'active':'' ?>">العربية</a>
         <a href="?lang=en" class="<?= $lang==='en'?'active':'' ?>">English</a>
