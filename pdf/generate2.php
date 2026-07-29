@@ -297,10 +297,10 @@ ob_start();
 <h2>نظام الفرامل &nbsp;|&nbsp; Brake System</h2>
 <table>
     <tr>
-        <th>الموقع / Position</th>
+        <th>الجهة / Position</th>
         <th>القوة / Force (%)</th>
         <th>الحالة / Status</th>
-        <th>الموقع / Position</th>
+        <th>الجهة / Position</th>
         <th>القوة / Force (%)</th>
         <th>الحالة / Status</th>
     </tr>
@@ -348,8 +348,8 @@ ob_start();
 <?php if (!empty($suspension)): ?>
 <h2>نظام التعليق &nbsp;|&nbsp; Suspension System</h2>
 <table>
-    <tr><th>الموقع / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th>
-        <th>الموقع / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th></tr>
+    <tr><th>الجهة / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th>
+        <th>الجهة / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th></tr>
     <?php
     $srows = [
         ['يسار أمامي / Front Left','front_left','يمين أمامي / Front Right','front_right'],

@@ -132,7 +132,7 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="card">
         <div class="card-header"><span class="ar">معلومات التقييم</span><span class="en">Assessment Info</span></div>
         <table style="width:100%;border-collapse:collapse">
-            <?php $mfields = [['ar'=>'رقم التقرير','en'=>'Report No','val'=>$report['report_number']], ['ar'=>'التاريخ','en'=>'Date','val'=>$report['date_inspection']], ['ar'=>'ساعة الدخول','en'=>'Time In','val'=>$report['time_in']], ['ar'=>'ساعة الخروج','en'=>'Time Out','val'=>$report['time_out']], ['ar'=>'نوع الباقة','en'=>'Package','val'=>$report['package_type']], ['ar'=>'هل رأيت الرخصة؟','en'=>'License Seen','val'=>$report['license_seen'] ? 'نعم / Yes' : 'لا / No'], ['ar'=>'اسم المشتري','en'=>'Customer','val'=>$report['customer_name']], ['ar'=>'اسم البائع','en'=>'Seller','val'=>$report['seller_name']]]; ?>
+            <?php $mfields = [['ar'=>'رقم التقرير','en'=>'Report No','val'=>$report['report_number']], ['ar'=>'التاريخ','en'=>'Date','val'=>$report['date_inspection']], ['ar'=>'ساعة الدخول','en'=>'Time In','val'=>$report['time_in']], ['ar'=>'ساعة الخروج','en'=>'Time Out','val'=>$report['time_out']], ['ar'=>'نوع الباقة','en'=>'Package','val'=>$report['package_type']],/*  ['ar'=>'هل رأيت الرخصة؟','en'=>'License Seen','val'=>$report['license_seen'] ? 'نعم / Yes' : 'لا / No'], */ ['ar'=>'اسم المشتري','en'=>'Customer','val'=>$report['customer_name']], ['ar'=>'اسم البائع','en'=>'Seller','val'=>$report['seller_name']]]; ?>
             <?php foreach ($mfields as $f): ?>
             <tr><td style="padding:0.4rem 0.5rem;border-bottom:1px solid #f0f0f0;color:var(--text-muted);width:50%"><span class="ar"><?= $f['ar'] ?></span> / <span class="en"><?= $f['en'] ?></span></td><td style="padding:0.4rem 0.5rem;border-bottom:1px solid #f0f0f0;font-weight:600"><?= clean($f['val'] ?? '—') ?></td></tr>
             <?php endforeach; ?>
@@ -155,19 +155,81 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- DYNO -->
-<?php if (!empty($dyno)): ?>
+<!-- DYNO -->
+<!-- DYNO -->
+<?php if (!empty($dyno) && isset($dyno['performance_percent'])): ?>
 <div class="card">
-    <div class="card-header"><span class="ar">نتيجة اختبار أداء المحرك</span><span class="en">Engine Performance</span></div>
-    <div style="display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center">
-        <table style="border-collapse:collapse;width:100%">
-            <tr style="background:var(--accent);color:#fff"><th style="padding:0.5rem 1rem;text-align:right"></th><th style="padding:0.5rem 1rem">KW</th><th style="padding:0.5rem 1rem">HP</th></tr>
-            <tr><td style="padding:0.5rem 1rem;border-bottom:1px solid #eee"><span class="ar">القوة الأصلية</span> / <span class="en">Original Power</span></td><td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;font-weight:700"><?= $dyno['original_kw'] ?? '—' ?></td><td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;font-weight:700"><?= $dyno['original_hp'] ?? '—' ?></td></tr>
-            <tr><td style="padding:0.5rem 1rem"><span class="ar">القوة المقاسة</span> / <span class="en">Measured Power</span></td><td style="padding:0.5rem 1rem;font-weight:700;color:var(--primary)"><?= $dyno['measured_kw'] ?? '—' ?></td><td style="padding:0.5rem 1rem;font-weight:700;color:var(--primary)"><?= $dyno['measured_hp'] ?? '—' ?></td></tr>
+    <div class="card-header">
+        <span class="ar">نتيجة اختبار أداء المحرك</span>
+        <span class="en">Engine Performance</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:2rem;align-items:center;">
+        <!-- Table -->
+        <table style="border-collapse:collapse;flex:1;min-width:200px;">
+            <tr style="background:var(--accent);color:#fff">
+                <th style="padding:0.5rem 1rem;text-align:right"></th>
+                <th style="padding:0.5rem 1rem">KW</th>
+                <th style="padding:0.5rem 1rem">HP</th>
+            </tr>
+            <tr>
+                <td style="padding:0.5rem 1rem;border-bottom:1px solid #eee">
+                    <span class="ar">القوة الأصلية</span> / <span class="en">Original Power</span>
+                </td>
+                <td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;font-weight:700"><?= $dyno['original_kw'] ?? '—' ?></td>
+                <td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;font-weight:700"><?= $dyno['original_hp'] ?? '—' ?></td>
+            </tr>
+            <tr>
+                <td style="padding:0.5rem 1rem">
+                    <span class="ar">القوة المقاسة</span> / <span class="en">Measured Power</span>
+                </td>
+                <td style="padding:0.5rem 1rem;font-weight:700;color:var(--primary)"><?= $dyno['measured_kw'] ?? '—' ?></td>
+                <td style="padding:0.5rem 1rem;font-weight:700;color:var(--primary)"><?= $dyno['measured_hp'] ?? '—' ?></td>
+            </tr>
         </table>
-        <div style="text-align:center;min-width:140px"><?php $pct = (float)($dyno['performance_percent'] ?? 0); ?><div style="font-size:3rem;font-weight:800;color:<?= $pct >= 80 ? 'var(--good)' : ($pct >= 60 ? 'var(--warning)' : 'var(--danger)') ?>"><?= number_format($pct, 1) ?>%</div><div><span class="ar">الأداء الآني</span> / <span class="en">Performance</span></div></div>
+
+        <!-- GAUGE -->
+        <div style="text-align:center;min-width:160px;flex-shrink:0;">
+            <?php
+            $pct = (float)($dyno['performance_percent'] ?? 0);
+            $color = ($pct >= 80) ? '#16a34a' : (($pct >= 60) ? '#ca8a04' : '#dc2626');
+            $arcLength = 220;
+            $dashArray = ($pct / 100) * $arcLength;
+            $angle = -90 + ($pct / 100) * 180;
+            ?>
+            <svg width="160" height="100" viewBox="0 0 160 100">
+                <!-- Background arc -->
+                <path d="M20,90 A70,70 0 0,1 140,90" fill="none" stroke="#e5e7eb" stroke-width="14" stroke-linecap="round"/>
+                <!-- Colored arc with gradient -->
+                <defs>
+                    <linearGradient id="gaugeGradView" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#dc2626"/>
+                        <stop offset="50%" stop-color="#ca8a04"/>
+                        <stop offset="75%" stop-color="#16a34a"/>
+                    </linearGradient>
+                </defs>
+                <path d="M20,90 A70,70 0 0,1 140,90" fill="none" stroke="url(#gaugeGradView)" stroke-width="14" stroke-linecap="round" 
+                      stroke-dasharray="<?= $dashArray ?> 220"/>
+                <!-- Needle -->
+                <line x1="80" y1="90" x2="80" y2="25" stroke="#1a1a2e" stroke-width="3" stroke-linecap="round" 
+                      transform="rotate(<?= $angle ?>,80,90)"/>
+                <circle cx="80" cy="90" r="6" fill="#1a1a2e"/>
+                <!-- Labels -->
+                <text x="8"  y="105" font-size="8" fill="#888">0</text>
+                <text x="72" y="10" font-size="8" fill="#888">50</text>
+                <text x="135" y="105" font-size="8" fill="#888">100</text>
+                <!-- Percentage — smaller and lower -->
+                <text x="80" y="95" font-size="14" font-weight="700" text-anchor="middle" fill="<?= $color ?>">
+                    <?= number_format($pct, 1) ?>%
+                </text>
+            </svg>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">
+                <span class="ar">الأداء الآني</span> / <span class="en">Performance</span>
+            </div>
+        </div>
     </div>
 </div>
 <?php endif; ?>
+
 
 <!-- BRAKES & SUSPENSION -->
 <?php if (!empty($brakes) || !empty($suspension)): ?>

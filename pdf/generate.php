@@ -216,7 +216,7 @@ ob_start();
                 <tr><td class="label">ساعة الدخول / Time In</td><td class="val"><?= pclean($report['time_in'] ?? '—') ?></td></tr>
                 <tr><td class="label">ساعة الخروج / Time Out</td><td class="val"><?= pclean($report['time_out'] ?? '—') ?></td></tr>
                 <tr><td class="label">نوع الباقة / Package</td><td class="val"><?= pclean($report['package_type'] ?? '—') ?></td></tr>
-                <tr><td class="label">هل رأيت الرخصة / License Seen</td><td class="val"><?= $report['license_seen'] ? 'نعم / Yes' : 'لا / No' ?></td></tr>
+                <!-- <tr><td class="label">هل رأيت الرخصة / License Seen</td><td class="val"><?= $report['license_seen'] ? 'نعم / Yes' : 'لا / No' ?></td></tr> -->
                 <tr><td class="label">المشتري / Customer</td><td class="val"><?= pclean($report['customer_name'] ?? '—') ?></td></tr>
                 <tr><td class="label">البائع / Seller</td><td class="val"><?= pclean($report['seller_name'] ?? '—') ?></td></tr>
             </table>
@@ -263,31 +263,72 @@ ob_start();
 <pagebreak/>
 
 <!-- DYNO -->
-<?php if (!empty($dyno)): ?>
+<!-- DYNO -->
+<?php if (!empty($dyno) && isset($dyno['performance_percent'])): ?>
 <h2>نتيجة اختبار أداء المحرك &nbsp;|&nbsp; Engine Performance Test</h2>
-<table>
+<table width="100%" style="border-collapse:collapse;margin-bottom:10px;">
     <tr>
         <td width="60%">
-            <table>
-                <tr><th></th><th>KW</th><th>HP</th></tr>
+            <table width="100%" style="border-collapse:collapse;">
                 <tr>
-                    <td>القوة الأصلية / Original Power</td>
-                    <td class="val"><?= pclean($dyno['original_kw'] ?? '—') ?></td>
-                    <td class="val"><?= pclean($dyno['original_hp'] ?? '—') ?></td>
+                    <th style="background:#1a1a2e;color:#fff;padding:4px 8px;text-align:right;"></th>
+                    <th style="background:#1a1a2e;color:#fff;padding:4px 8px;">KW</th>
+                    <th style="background:#1a1a2e;color:#fff;padding:4px 8px;">HP</th>
                 </tr>
                 <tr>
-                    <td>القوة المقاسة / Measured Power</td>
-                    <td class="val" style="color:#c0392b"><?= pclean($dyno['measured_kw'] ?? '—') ?></td>
-                    <td class="val" style="color:#c0392b"><?= pclean($dyno['measured_hp'] ?? '—') ?></td>
+                    <td style="padding:4px 8px;border-bottom:1px solid #eee;">القوة الأصلية / Original Power</td>
+                    <td style="padding:4px 8px;border-bottom:1px solid #eee;font-weight:bold;"><?= $dyno['original_kw'] ?? '—' ?></td>
+                    <td style="padding:4px 8px;border-bottom:1px solid #eee;font-weight:bold;"><?= $dyno['original_hp'] ?? '—' ?></td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 8px;">القوة المقاسة / Measured Power</td>
+                    <td style="padding:4px 8px;font-weight:bold;color:#c0392b;"><?= $dyno['measured_kw'] ?? '—' ?></td>
+                    <td style="padding:4px 8px;font-weight:bold;color:#c0392b;"><?= $dyno['measured_hp'] ?? '—' ?></td>
                 </tr>
             </table>
         </td>
-        <td width="40%" style="text-align:center">
-            <?php $pct = (float)($dyno['performance_percent'] ?? 0); ?>
-            <span style="font-size:28pt; font-weight:bold; color:<?= $pct>=80?'#16a34a':($pct>=60?'#ca8a04':'#dc2626') ?>">
-                <?= number_format($pct, 1) ?>%
-            </span><br>
-            <span style="font-size:9pt; color:#666">الأداء الآني / Live Performance</span>
+        <td width="40%" style="text-align:center;">
+            <?php
+            $pct = (float)($dyno['performance_percent'] ?? 0);
+            $color = ($pct >= 80) ? '#16a34a' : (($pct >= 60) ? '#ca8a04' : '#dc2626');
+            $arcLength = 195;
+            $dashArray = ($pct / 100) * $arcLength;
+            $angle = -90 + ($pct / 100) * 180;
+            ?>
+            <svg width="140" height="100" viewBox="0 0 140 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- DEFINITIONS (MUST BE FIRST) -->
+                <defs>
+                    <linearGradient id="gaugeGradPdf" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#dc2626" />
+                        <stop offset="50%" stop-color="#ca8a04" />
+                        <stop offset="100%" stop-color="#16a34a" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Background arc -->
+                <path d="M18,85 A62,62 0 0,1 122,85" fill="none" stroke="#e5e7eb" stroke-width="12" stroke-linecap="round"/>
+
+                <!-- Colored arc (using gradient from defs) -->
+                <path d="M18,85 A62,62 0 0,1 122,85" fill="none" stroke="url(#gaugeGradPdf)" stroke-width="12" stroke-linecap="round" 
+                      stroke-dasharray="<?= $dashArray ?> 195"/>
+
+                <!-- Needle -->
+                <line x1="70" y1="85" x2="70" y2="27" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round" 
+                      transform="rotate(<?= $angle ?>,70,85)"/>
+                <circle cx="70" cy="85" r="5" fill="#1a1a2e"/>
+
+                <!-- Labels -->
+                <text x="8"  y="98" font-size="7" fill="#888">0</text>
+                <text x="63" y="12" font-size="7" fill="#888">50</text>
+                <text x="118" y="98" font-size="7" fill="#888">100</text>
+
+                <!-- Percentage — moved down -->
+                <text x="70" y="70" font-size="13" font-weight="700" text-anchor="middle" fill="<?= $color ?>">
+                    <?= number_format($pct, 1) ?>%
+                </text>
+            </svg>
+            <br>
+            <span style="font-size:8pt;color:#666;">الأداء الآني / Live Performance</span>
         </td>
     </tr>
 </table>
@@ -298,10 +339,10 @@ ob_start();
 <h2>نظام الفرامل &nbsp;|&nbsp; Brake System</h2>
 <table>
     <tr>
-        <th>الموقع / Position</th>
+        <th>الجهة / Position</th>
         <th>القوة / Force (%)</th>
         <th>الحالة / Status</th>
-        <th>الموقع / Position</th>
+        <th>الجهة / Position</th>
         <th>القوة / Force (%)</th>
         <th>الحالة / Status</th>
     </tr>
@@ -349,8 +390,8 @@ ob_start();
 <?php if (!empty($suspension)): ?>
 <h2>نظام التعليق &nbsp;|&nbsp; Suspension System</h2>
 <table>
-    <tr><th>الموقع / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th>
-        <th>الموقع / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th></tr>
+    <tr><th>الجهة / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th>
+        <th>الجهة / Position</th><th>القيمة / Value (%)</th><th>الحالة / Status</th></tr>
     <?php
     $srows = [
         ['يسار أمامي / Front Left','front_left','يمين أمامي / Front Right','front_right'],
