@@ -549,17 +549,17 @@ $pdfDiagrams = $stmt->fetchAll();
 $bodyPanelGroupsPdf = [
     ['title_ar'=>'يمين','title_en'=>'Right Side','keys'=>[
         'right_front_fender','right_front_door','right_rear_door','right_rear_fender',
-        'right_sill','right_a_pillar','right_b_pillar','right_roof_rail',
+        'right_sill','right_a_pillar','right_b_pillar','roof',
         'right_c_pillar','right_d_pillar','right_platform','right_chassis',
     ]],
     ['title_ar'=>'يسار','title_en'=>'Left Side','keys'=>[
         'left_front_fender','left_front_door','left_rear_door','left_rear_fender',
-        'left_sill','left_a_pillar','left_b_pillar','left_roof_rail',
+        'left_sill','left_a_pillar','left_b_pillar','roof',
         'left_c_pillar','left_d_pillar','left_platform','left_chassis',
     ]],
-    ['title_ar'=>'فوق','title_en'=>'Top','keys'=>['hood','roof','trunk_top']],
+    ['title_ar'=>'فوق','title_en'=>'Top','keys'=>['hood','roof','trunk']],
     ['title_ar'=>'أمام / خلف','title_en'=>'Front / Rear','keys'=>[
-        'trunk_door','rear_panel','trunk_floor','rear_bumper','front_bumper','front_panel',
+        'trunk','rear_panel','trunk_floor','rear_bumper','front_bumper','front_panel',
     ]],
 ];
 ?>

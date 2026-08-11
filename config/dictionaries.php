@@ -157,7 +157,7 @@ if (!defined('BODY_PANELS_DICT')) {
         'right_sill'         => ['ar' => 'مارشبيل اليمين',           'en' => 'Right Sill'],
         'right_a_pillar'     => ['ar' => 'العمود الأيمن الأمامي',    'en' => 'Right A-Pillar'],
         'right_b_pillar'     => ['ar' => 'عمود الباب الأيمن الأمامي','en' => 'Right B-Pillar'],
-        'right_roof_rail'    => ['ar' => 'عمود السقف الأيمن',        'en' => 'Right Roof Rail'],
+        // 'right_roof_rail'    => ['ar' => 'عمود السقف الأيمن',        'en' => 'Right Roof Rail'],
         'right_c_pillar'     => ['ar' => 'العمود الأيمن الخلفي',     'en' => 'Right C-Pillar'],
         'right_d_pillar'     => ['ar' => 'العمود الأيمن المتوسط',    'en' => 'Right D-Pillar'],
         'right_platform'     => ['ar' => 'المنصة الحامية اليمين',    'en' => 'Right Platform'],
@@ -171,7 +171,7 @@ if (!defined('BODY_PANELS_DICT')) {
         'left_sill'          => ['ar' => 'مارشبيل اليسار',           'en' => 'Left Sill'],
         'left_a_pillar'      => ['ar' => 'العمود الأيسر الأمامي',    'en' => 'Left A-Pillar'],
         'left_b_pillar'      => ['ar' => 'عمود الباب الأيسر الأمامي','en' => 'Left B-Pillar'],
-        'left_roof_rail'     => ['ar' => 'عمود السقف الأيسري',       'en' => 'Left Roof Rail'],
+        // 'left_roof_rail'     => ['ar' => 'عمود السقف الأيسري',       'en' => 'Left Roof Rail'],
         'left_c_pillar'      => ['ar' => 'العمود الأيسر الخلفي',     'en' => 'Left C-Pillar'],
         'left_d_pillar'      => ['ar' => 'العمود الأيسر المتوسط',    'en' => 'Left D-Pillar'],
         'left_platform'      => ['ar' => 'المنصة الحامية اليسار',    'en' => 'Left Platform'],
@@ -180,10 +180,11 @@ if (!defined('BODY_PANELS_DICT')) {
         // Top
         'hood'               => ['ar' => 'غطاء المحرك',               'en' => 'Hood'],
         'roof'               => ['ar' => 'السقف',                     'en' => 'Roof'],
-        'trunk_top'          => ['ar' => 'أعلى غطاء الصندوق',         'en' => 'Trunk Lid Top'],
+        // 'trunk_top'          => ['ar' => 'أعلى غطاء الصندوق',         'en' => 'Trunk Lid Top'],
+        'trunk'              => ['ar' => 'غطاء الصندوق',              'en' => 'Trunk Lid'],
 
         // Front / Rear
-        'trunk_door'         => ['ar' => 'غطاء الصندوق',              'en' => 'Trunk Door'],
+        // 'trunk_door'         => ['ar' => 'غطاء الصندوق',              'en' => 'Trunk Door'],
         'rear_panel'         => ['ar' => 'البانيل الخلفي',            'en' => 'Rear Panel'],
         'trunk_floor'        => ['ar' => 'صاج الصندوق',               'en' => 'Trunk Floor'],
         'rear_bumper'        => ['ar' => 'الدعامية الخلفية',          'en' => 'Rear Bumper'],
@@ -620,16 +621,16 @@ if (!function_exists('getBodyPanelGroups')) {
         $groupKeys = [
             'right' => [
                 'right_front_fender', 'right_front_door', 'right_rear_door', 'right_rear_fender',
-                'right_sill', 'right_a_pillar', 'right_b_pillar', 'right_roof_rail',
+                'right_sill', 'right_a_pillar', 'right_b_pillar', 'roof',        // was right_roof_rail
                 'right_c_pillar', 'right_d_pillar', 'right_platform', 'right_chassis'
             ],
             'left' => [
                 'left_front_fender', 'left_front_door', 'left_rear_door', 'left_rear_fender',
-                'left_sill', 'left_a_pillar', 'left_b_pillar', 'left_roof_rail',
+                'left_sill', 'left_a_pillar', 'left_b_pillar', 'roof',           // was left_roof_rail
                 'left_c_pillar', 'left_d_pillar', 'left_platform', 'left_chassis'
             ],
-            'top' => ['hood', 'roof', 'trunk_top'],
-            'front_rear' => ['trunk_door', 'rear_panel', 'trunk_floor', 'rear_bumper', 'front_bumper', 'front_panel']
+            'top' => ['hood', 'roof', 'trunk'],                                   // was trunk_top
+            'front_rear' => ['trunk', 'rear_panel', 'trunk_floor', 'rear_bumper', 'front_bumper', 'front_panel'] // was trunk_door
         ];
 
         foreach ($groupKeys as $groupKey => $keys) {
