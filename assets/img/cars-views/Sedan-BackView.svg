@@ -7,31 +7,9 @@
    width="383"
    height="281"
    viewBox="0 0 383 281"
-   sodipodi:docname="Sedan-BackView.svg"
-   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview1"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="2.8291815"
-     inkscape:cx="191.57484"
-     inkscape:cy="140.5"
-     inkscape:window-width="1920"
-     inkscape:window-height="1013"
-     inkscape:window-x="1691"
-     inkscape:window-y="-9"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="g1" />
   <defs
      id="defs1" />
   <g
@@ -59,8 +37,7 @@
        id="sedan_rear_bumper_left"
        style="opacity:1;fill:#321bf3;fill-opacity:0;stroke:#ffffff;stroke-width:0.1996;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0"
        d="m 42.236328,133.54492 c -3.887767,-0.0374 -6.517492,0.0451 -6.625,0.32813 -0.61098,1.60872 0.27558,19.19872 -1.148437,24.47656 -1.064743,3.94626 -7.239491,5.0551 -11.128907,5.34961 -1.283697,0.0972 -2.322924,0.0529 -2.841796,0.0625 -2.032037,0.038 -2.127294,-0.28139 -2.113282,0.0664 1.051719,26.10626 1.116827,32.9075 1.91211,40.6836 0.795283,7.7761 5.096746,24.59479 7.101562,25.23633 1.865327,0.5969 15.241598,0.85506 15.267578,0.55078 0.316788,-3.71008 -0.509505,-15.48435 4.173828,-18.40039 4.683334,-2.91604 8.570259,-4.1533 23.503907,-3.97656 7.042426,0.0833 63.429819,-0.0106 121.537109,-0.0586 0,0 0.0746,-41.30137 0.0644,-47.37211 -8.1e-4,-0.48154 -0.002,-0.74142 -0.004,-0.74142 -4.1969,-0.005 -8.42424,-0.0314 -12.64135,-0.0396 -40.44031,-0.0781 -79.943613,-0.33079 -82.641856,-0.57178 -5.295895,-0.47306 -9.235951,-4.04282 -11.203125,-6.62109 -0.549812,-0.72061 -0.903352,-1.62038 -1.478516,-2.54688 -1.506865,-2.42732 -3.181155,-5.36476 -4.335937,-8.06445 -1.544368,-3.61048 -2.367305,-6.72469 -2.625,-6.94531 -0.129349,-0.11074 -33.792374,0.54611 -34.773438,-1.41602 z"
-       data-panel="rear_bumper"
-       sodipodi:nodetypes="ccssccssssccscccsssscc" />
+       data-panel="rear_bumper" />
     <path
        id="sedan_rear_bumper_right"
        style="fill:#321bf3;fill-opacity:0;stroke:#ffffff;stroke-width:0.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0"
