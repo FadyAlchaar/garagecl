@@ -36,6 +36,7 @@ try {
         'chassis_number'  => $_POST['chassis_number']  ?? '',
         'brand'           => $_POST['brand']           ?? '',
         'model'           => $_POST['model']           ?? '',
+        'body_style'      => in_array($_POST['body_style'] ?? '', ['sedan','suv']) ? $_POST['body_style'] : 'sedan',
         'year'            => $_POST['year']            ?? null,
         'fuel_type'       => $_POST['fuel_type']       ?? 'Petrol',
         'mileage'         => $_POST['mileage']         ?? null,

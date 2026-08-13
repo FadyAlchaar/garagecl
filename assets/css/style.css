@@ -315,9 +315,63 @@ select { cursor: pointer; }
 }
 .body-map-svg-wrap .panel-clickable {
     cursor: pointer;
-    transition: opacity 0.15s;
+    fill-opacity: 0.001;
+    stroke: #1a1a2e;
+    stroke-width: 1.2;
+    stroke-opacity: 0.55;
+    transition: fill-opacity 0.15s ease, stroke-width 0.15s ease;
+    vector-effect: non-scaling-stroke;
 }
-.body-map-svg-wrap .panel-clickable:hover { opacity: 0.75; }
+.body-map-svg-wrap .panel-clickable:hover { fill-opacity: 0.55 !important; stroke-width: 2; }
+.body-map-svg-wrap .panel-clickable.selected { stroke: #1a1a2e; stroke-width: 2.4; }
+.body-map-svg-wrap .panel-reference { fill-opacity: 0; stroke-opacity: 0.12; pointer-events: none; }
+
+.body-diagram-widget { margin-bottom: 1.5rem; }
+.diagram-view-tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+.diagram-view-tabs .view-tab {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border);
+    background: #f3f4f6;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.diagram-view-tabs .view-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.body-map-svg-wrap {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    max-width: 640px;
+    margin: 0 auto;
+}
+.body-map-svg-wrap .diagram-slide svg { display: block; width: 100%; height: auto; }
+
+.panel-status-popover {
+    position: fixed;
+    z-index: 500;
+    background: #1a1a2e;
+    border-radius: 10px;
+    padding: 0.6rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.panel-status-popover.hidden { display: none; }
+.popover-panel-name { color: #fff; font-size: 0.78rem; margin-bottom: 0.4rem; text-align: center; }
+.popover-swatches { display: flex; gap: 0.35rem; }
+.popover-swatch {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4);
+    cursor: pointer;
+    padding: 0;
+}
+.popover-swatch:hover { border-color: #fff; transform: scale(1.1); }
 .panel-legend {
     display: flex;
     flex-wrap: wrap;

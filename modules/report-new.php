@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/lang.php';
 require_once __DIR__ . '/../config/auth.php';
 require_once __DIR__ . '/../config/dictionaries.php';
+require_once __DIR__ . '/../includes/diagram-renderer.php';
 requireAuth();
 
 $pageTitle = 'تقرير جديد | New Report';
@@ -163,6 +164,14 @@ require_once __DIR__ . '/../includes/header.php';
                 <div class="form-group">
                     <label class="required"><span class="ar">الموديل</span><span class="en">Model</span></label>
                     <input type="text" name="model" value="<?= clean($report['model'] ?? '') ?>" required>
+                </div>
+                <div class="form-group">
+                    <label class="required"><span class="ar">هيكل السيارة</span><span class="en">Body Style</span></label>
+                    <select name="body_style" id="bodyStyleSelect" onchange="switchBodyStyle(this.value)" required>
+                        <?php foreach (BODY_STYLES as $val => $names): ?>
+                        <option value="<?= $val ?>" <?= ($report['body_style'] ?? 'sedan') === $val ? 'selected' : '' ?>><?= $names['ar'] ?> / <?= $names['en'] ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label><span class="ar">سنة الصنع</span><span class="en">Year</span></label>
@@ -450,6 +459,9 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="card">
         <div class="card-header"><span class="ar">خريطة الهيكل الخارجي</span><span class="en">External Body Map</span></div>
         <div class="panel-legend" style="margin-bottom:1rem"><?php foreach (PANEL_STATUS as $key => $info): ?><div class="legend-item"><div class="legend-swatch" style="background:<?= $info['color'] ?>"></div><span class="ar"><?= $info['ar'] ?></span> / <span class="en"><?= $info['en'] ?></span></div><?php endforeach; ?></div>
+
+        <?php renderBodyDiagramWidget($report['body_style'] ?? 'sedan', $bodyPanels); ?>
+
         <div class="panel-status-grid">
             <?php foreach ($bodyPanelGroups as $groupKey => $group): ?>
             <div class="panel-status-section">
@@ -607,9 +619,86 @@ function syncHP(prefix){ const kw=parseFloat(document.getElementById(prefix+'_kw
 function syncKW(prefix){ const hp=parseFloat(document.getElementById(prefix+'_hp').value); if(!isNaN(hp)) document.getElementById(prefix+'_kw').value=(hp*0.7457).toFixed(1); }
 function calcPerf(){ const orig=parseFloat(document.getElementById('orig_kw').value); const meas=parseFloat(document.getElementById('meas_kw').value); if(orig>0&&meas>=0){ const pct=Math.min(100,(meas/orig)*100); document.getElementById('perf_pct').value=pct.toFixed(1); updateGauge(); } }
 function colorSelect(sel){ const colors={good:'#16a34a',none:'#16a34a',light:'#ca8a04',medium:'#ea580c',bad:'#dc2626',not_checked:'#6b7280'}; sel.style.color=colors[sel.value]||'#1a1a2e'; sel.style.fontWeight='700'; }
-function updatePanelColor(sel){ const colors={original:'#ffffff',painted:'#3b82f6',replaced:'#ef4444',repaired:'#a855f7',spot_paint:'#eab308',plastic:'#9ca3af'}; sel.style.background=colors[sel.value]||'#fff'; sel.style.color=['original','spot_paint'].includes(sel.value)?'#1a1a2e':'#fff'; }
+const PANEL_STATUS_COLORS = {original:'#ffffff',painted:'#3b82f6',replaced:'#ef4444',repaired:'#a855f7',spot_paint:'#eab308',plastic:'#9ca3af'};
+function updatePanelColor(sel){ sel.style.background=PANEL_STATUS_COLORS[sel.value]||'#fff'; sel.style.color=['original','spot_paint'].includes(sel.value)?'#1a1a2e':'#fff'; paintDiagramPanel(sel.dataset.panel, sel.value); }
 document.querySelectorAll('.result-select').forEach(colorSelect);
 document.querySelectorAll('.panel-status-select').forEach(updatePanelColor);
+
+// ---- BODY DIAGRAM WIDGET ----
+function paintDiagramPanel(panelKey, status) {
+    if (!panelKey) return;
+    const color = PANEL_STATUS_COLORS[status] || '#ffffff';
+    document.querySelectorAll(`.panel-clickable[data-panel="${panelKey}"]`).forEach(el => {
+        el.setAttribute('fill', color);
+        el.style.fillOpacity = (status === 'original' || !status) ? 0.001 : 0.55;
+    });
+}
+
+// paint every diagram panel from its current select value (initial load / edit mode)
+document.querySelectorAll('.panel-status-select').forEach(sel => paintDiagramPanel(sel.dataset.panel, sel.value));
+
+// view tab switching (only affects slides for the currently active body style)
+document.querySelectorAll('.diagram-view-tabs .view-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const widget = tab.closest('.body-diagram-widget');
+        const style = widget.dataset.currentStyle;
+        const view = tab.dataset.view;
+        widget.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        widget.querySelectorAll(`.diagram-slide[data-style="${style}"]`).forEach(s => s.style.display = 'none');
+        widget.querySelector(`.diagram-slide[data-style="${style}"][data-view="${view}"]`).style.display = '';
+    });
+});
+
+// called from the Step 1 body_style <select> onchange
+function switchBodyStyle(newStyle) {
+    const widget = document.querySelector('.body-diagram-widget');
+    if (!widget) return;
+    widget.dataset.currentStyle = newStyle;
+    const activeView = widget.querySelector('.view-tab.active')?.dataset.view || 'front';
+    widget.querySelectorAll('.diagram-slide').forEach(s => s.style.display = 'none');
+    const target = widget.querySelector(`.diagram-slide[data-style="${newStyle}"][data-view="${activeView}"]`);
+    if (target) target.style.display = '';
+}
+
+// click a panel -> popover with status swatches
+const popover = document.getElementById('panelStatusPopover');
+const popoverName = document.getElementById('popoverPanelName');
+let popoverPanelKey = null;
+
+document.querySelectorAll('.panel-clickable').forEach(el => {
+    el.addEventListener('click', (e) => {
+        popoverPanelKey = el.dataset.panel;
+        if (!popoverPanelKey) return;
+        document.querySelectorAll('.panel-clickable').forEach(p => p.classList.remove('selected'));
+        document.querySelectorAll(`.panel-clickable[data-panel="${popoverPanelKey}"]`).forEach(p => p.classList.add('selected'));
+        popoverName.textContent = popoverPanelKey.replaceAll('_', ' ');
+        popover.classList.remove('hidden');
+        const x = e.clientX, y = e.clientY;
+        const pw = 180; // approx popover width
+        popover.style.left = Math.min(x, window.innerWidth - pw) + 'px';
+        popover.style.top = Math.max(10, y - 70) + 'px';
+    });
+});
+
+document.querySelectorAll('.popover-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+        if (!popoverPanelKey) return;
+        const status = sw.dataset.status;
+        const select = document.querySelector(`.panel-status-select[data-panel="${popoverPanelKey}"]`);
+        if (select) {
+            select.value = status;
+            select.dispatchEvent(new Event('change'));
+        }
+        popover.classList.add('hidden');
+    });
+});
+
+document.addEventListener('click', (e) => {
+    if (!popover.contains(e.target) && !e.target.classList.contains('panel-clickable')) {
+        popover.classList.add('hidden');
+    }
+});
 
 // ---- SAVE REPORT (unchanged) ----
 function saveReport(complete) {

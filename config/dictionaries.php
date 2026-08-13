@@ -21,6 +21,19 @@ if (!defined('FUEL_TYPES')) {
 }
 
 // ============================================================
+// 1b. BODY STYLES (matches database `reports.body_style` enum)
+// Determines which set of 5 traced SVG diagrams is shown in the
+// body panel map step. Add a new key here + trace 5 matching SVGs
+// in assets/img/cars-views/ to support another silhouette.
+// ============================================================
+if (!defined('BODY_STYLES')) {
+    define('BODY_STYLES', [
+        'sedan' => ['ar' => 'سيدان', 'en' => 'Sedan'],
+        'suv'   => ['ar' => 'دفع رباعي', 'en' => 'SUV'],
+    ]);
+}
+
+// ============================================================
 // 2. CHECKLIST ITEMS (matches `checklist_items.item_key`)
 // ============================================================
 if (!defined('CHECKLIST_ITEMS')) {
