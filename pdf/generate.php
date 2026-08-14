@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/dictionaries.php'; // NEW
+require_once __DIR__ . '/../includes/diagram-renderer.php';
 
 $reportId = (int)($_GET['id'] ?? 0);
 if (!$reportId) { die('Invalid report ID'); }
@@ -544,6 +545,9 @@ $pdfDiagrams = $stmt->fetchAll();
 <?php endforeach; ?>
 </tr>
 </table>
+
+<!-- Body Panel Diagram (5 views, colored from saved statuses) -->
+<?php renderBodyDiagramRowForPdf($report['body_style'] ?? 'sedan', $panels); ?>
 
 <?php
 $bodyPanelGroupsPdf = [

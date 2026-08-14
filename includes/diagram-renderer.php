@@ -77,6 +77,20 @@ function bodyDiagramSourcePath(string $style, string $view): string
  * Any inkscape:/sodipodi: leftovers are stripped defensively even
  * though current exports are already clean Plain SVG.
  */
+/**
+ * Resolve a traced shape's raw id (e.g. "sedan_left_front_fender") to its
+ * real BODY_PANELS_DICT key, or null if it's not a tracked panel (glass,
+ * grille, or anything else intentionally left untracked).
+ * Both the web widget and the PDF renderer go through this single
+ * function so their panel resolution can never silently drift apart.
+ */
+function resolveBodyPanelKey(string $rawId): ?string
+{
+    $suffix = preg_replace('/^(sedan_|suv_)/', '', $rawId);
+    $panelKey = PANEL_ID_SUFFIX_MAP[$suffix] ?? $suffix;
+    return array_key_exists($panelKey, BODY_PANELS_DICT) ? $panelKey : null;
+}
+
 function wireBodyDiagramSvg(string $style, string $view): string
 {
     $path = bodyDiagramSourcePath($style, $view);
@@ -96,21 +110,141 @@ function wireBodyDiagramSvg(string $style, string $view): string
         if (!preg_match('/\bid="([^"]+)"/', $tag, $idm)) {
             return $tag;
         }
-        $rawId = $idm[1];
-        $suffix = preg_replace('/^(sedan_|suv_)/', '', $rawId);
-        $panelKey = PANEL_ID_SUFFIX_MAP[$suffix] ?? $suffix;
+        $panelKey = resolveBodyPanelKey($idm[1]);
 
-        if (!array_key_exists($panelKey, BODY_PANELS_DICT)) {
+        if ($panelKey === null) {
             // not a tracked panel (shouldn't happen post-cleanup, but fail safe
             // rather than mis-tag an unknown shape as clickable/paintable)
             return str_replace('/>', ' class="panel-reference" data-panel="" />', $tag);
         }
+
+        // Inkscape bakes fill:#xxxxxx;fill-opacity:N directly into each
+        // shape's style="" attribute. An inline style attribute always
+        // beats setAttribute('fill', ...) from JS, so paint would silently
+        // fail (or worse, always render the shape's original trace color).
+        // Strip just those two properties here — stroke/etc. are left
+        // alone — so the CSS class + click-to-paint JS fully control fill.
+        $tag = preg_replace('/\bfill\s*:\s*[^;"]+;?/i', '', $tag);
+        $tag = preg_replace('/\bfill-opacity\s*:\s*[^;"]+;?/i', '', $tag);
+
+        // strip any pre-existing class="" / data-panel="" first — some
+        // shapes (bumper halves) already carry a leftover data-panel
+        // attribute from an earlier hand-wiring pass. Adding a second one
+        // is invalid XML: browsers silently tolerate it, but mPDF's strict
+        // XML parser does not, so this must never be assumed clean.
+        $tag = preg_replace('/\s+class="[^"]*"/', '', $tag);
+        $tag = preg_replace('/\s+data-panel="[^"]*"/', '', $tag);
 
         $tag = str_replace('/>', ' class="panel-clickable" data-panel="' . $panelKey . '" />', $tag);
         return $tag;
     }, $svg);
 
     return $svg;
+}
+
+/**
+ * ============================================================
+ * PDF RENDERING (pdf/generate.php)
+ * mPDF renders SVG through its own XML parser (vendor/mpdf/mpdf/src/Image/Svg.php),
+ * not a browser — it does not apply CSS classes/stylesheets to SVG shapes,
+ * only attributes it parses directly off each element. So for the PDF we
+ * bake the *actual final* fill color for the report's saved status
+ * straight into each path's style attribute, server-side, at generation
+ * time — no class, no JS, no click interactivity needed or possible.
+ * ============================================================
+ */
+
+/**
+ * Same wiring as wireBodyDiagramSvg(), but colors every tracked panel
+ * with its real saved status color instead of leaving it paintable.
+ * $panelStatuses: [panel_key => status_string] pulled from body_panels.
+ * Requires panelColor(string $status): string to already be defined
+ * (pdf/generate.php defines it) — falls back to '#ffffff' if not found.
+ */
+function renderBodyDiagramForPdf(string $style, string $view, array $panelStatuses): string
+{
+    $path = bodyDiagramSourcePath($style, $view);
+    if (!is_file($path)) {
+        return '';
+    }
+    $svg = file_get_contents($path);
+
+    $svg = preg_replace('/<\?xml[^>]*\?>\s*/', '', $svg);
+    $svg = preg_replace('/<!--.*?-->/s', '', $svg);
+    $svg = preg_replace('/\s+(inkscape|sodipodi):[a-zA-Z-]+="[^"]*"/', '', $svg);
+    $svg = preg_replace('/<sodipodi:namedview\b.*?(\/>|<\/sodipodi:namedview>)/s', '', $svg);
+
+    $svg = preg_replace_callback('/<path\b[^>]*\/?>/', function ($m) use ($panelStatuses) {
+        $tag = $m[0];
+        if (!preg_match('/\bid="([^"]+)"/', $tag, $idm)) {
+            return $tag;
+        }
+        $panelKey = resolveBodyPanelKey($idm[1]);
+
+        // strip the baked-in trace fill/fill-opacity from the EXISTING
+        // style="" attribute (there may be no style attribute at all, in
+        // which case this is a no-op and one gets added below)
+        $tag = preg_replace('/\bfill\s*:\s*[^;"]+;?/i', '', $tag);
+        $tag = preg_replace('/\bfill-opacity\s*:\s*[^;"]+;?/i', '', $tag);
+
+        $newFillCss = ($panelKey === null)
+            ? 'fill:none;'
+            : (function () use ($panelKey, $panelStatuses) {
+                $status = $panelStatuses[$panelKey]['status'] ?? 'original';
+                $color = function_exists('panelColor') ? panelColor($status) : '#ffffff';
+                $opacity = ($status === 'original' || !$status) ? 0.03 : 0.62;
+                return 'fill:' . $color . ';fill-opacity:' . $opacity . ';';
+            })();
+
+        if (preg_match('/style="([^"]*)"/', $tag, $sm)) {
+            // an existing style="" attribute is present (the normal case) —
+            // merge into it, never add a second style attribute (invalid XML,
+            // and would silently break mPDF's strict SVG parser)
+            $merged = $newFillCss . $sm[1];
+            $tag = preg_replace('/style="[^"]*"/', 'style="' . $merged . '"', $tag, 1);
+        } else {
+            $tag = str_replace('/>', ' style="' . $newFillCss . '" />', $tag);
+        }
+        return $tag;
+    }, $svg);
+
+    return $svg;
+}
+
+/**
+ * Wrap renderBodyDiagramForPdf() output as a data URI, ready to drop
+ * straight into an <img src="..."> inside HTML passed to $mpdf->WriteHTML().
+ * mPDF's ImageProcessor explicitly supports data:image/svg+xml;base64,...
+ * (vendor/mpdf/mpdf/src/Image/ImageProcessor.php line ~145).
+ */
+function bodyDiagramDataUri(string $style, string $view, array $panelStatuses): string
+{
+    $svg = renderBodyDiagramForPdf($style, $view, $panelStatuses);
+    if ($svg === '') {
+        return '';
+    }
+    return 'data:image/svg+xml;base64,' . base64_encode($svg);
+}
+
+/**
+ * Convenience: echoes an <img> tag per view (front/left/top/right/back)
+ * in a simple HTML table row, sized for a PDF page. Call this directly
+ * from pdf/generate.php where the body panel section is built.
+ */
+function renderBodyDiagramRowForPdf(string $style, array $panelStatuses): void
+{
+    ?>
+    <table style="margin-bottom:8px">
+    <tr>
+        <?php foreach (BODY_DIAGRAM_VIEWS as $viewKey => $label): ?>
+        <td style="text-align:center;padding:2px 4px;width:20%">
+            <img src="<?= bodyDiagramDataUri($style, $viewKey, $panelStatuses) ?>" style="width:100%">
+            <div style="font-size:7pt;color:#666"><?= $label['ar'] ?> / <?= $label['en'] ?></div>
+        </td>
+        <?php endforeach; ?>
+    </tr>
+    </table>
+    <?php
 }
 
 /**

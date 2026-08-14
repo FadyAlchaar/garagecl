@@ -327,6 +327,18 @@ select { cursor: pointer; }
 .body-map-svg-wrap .panel-reference { fill-opacity: 0; stroke-opacity: 0.12; pointer-events: none; }
 
 .body-diagram-widget { margin-bottom: 1.5rem; }
+.btn-reset-panels {
+    margin-inline-start: auto;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid #dc2626;
+    background: #fff;
+    color: #dc2626;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-reset-panels:hover { background: #dc2626; color: #fff; }
 .diagram-view-tabs {
     display: flex;
     gap: 0.4rem;

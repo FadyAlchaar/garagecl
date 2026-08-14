@@ -458,7 +458,11 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="wizard-panel" id="panel-4">
     <div class="card">
         <div class="card-header"><span class="ar">خريطة الهيكل الخارجي</span><span class="en">External Body Map</span></div>
-        <div class="panel-legend" style="margin-bottom:1rem"><?php foreach (PANEL_STATUS as $key => $info): ?><div class="legend-item"><div class="legend-swatch" style="background:<?= $info['color'] ?>"></div><span class="ar"><?= $info['ar'] ?></span> / <span class="en"><?= $info['en'] ?></span></div><?php endforeach; ?></div>
+        <div class="panel-legend" style="margin-bottom:1rem"><?php foreach (PANEL_STATUS as $key => $info): ?><div class="legend-item"><div class="legend-swatch" style="background:<?= $info['color'] ?>"></div><span class="ar"><?= $info['ar'] ?></span> / <span class="en"><?= $info['en'] ?></span></div><?php endforeach; ?>
+            <button type="button" class="btn-reset-panels" onclick="resetAllPanels()">
+                <span class="ar">إعادة تعيين الكل</span> / <span class="en">Reset All</span>
+            </button>
+        </div>
 
         <?php renderBodyDiagramWidget($report['body_style'] ?? 'sedan', $bodyPanels); ?>
 
@@ -624,12 +628,28 @@ function updatePanelColor(sel){ sel.style.background=PANEL_STATUS_COLORS[sel.val
 document.querySelectorAll('.result-select').forEach(colorSelect);
 document.querySelectorAll('.panel-status-select').forEach(updatePanelColor);
 
+// reset every panel's status back to 'original' in one action, instead of
+// clicking through each panel individually. Only resets paint status (the
+// select), not the ST/F/H checkboxes — those are a separate concern.
+function resetAllPanels() {
+    const msg = document.documentElement.lang === 'ar'
+        ? 'سيتم إعادة تعيين كل الطلاء إلى "أصلي". هل أنت متأكد؟'
+        : 'This will reset every panel back to "Original". Are you sure?';
+    if (!confirm(msg)) return;
+    document.querySelectorAll('.panel-status-select').forEach(sel => {
+        sel.value = 'original';
+        sel.dispatchEvent(new Event('change'));
+    });
+}
+
 // ---- BODY DIAGRAM WIDGET ----
 function paintDiagramPanel(panelKey, status) {
     if (!panelKey) return;
     const color = PANEL_STATUS_COLORS[status] || '#ffffff';
     document.querySelectorAll(`.panel-clickable[data-panel="${panelKey}"]`).forEach(el => {
-        el.setAttribute('fill', color);
+        // .style.fill (not setAttribute) so this reliably overrides any
+        // inline style="fill:..." baked into the traced shape by Inkscape
+        el.style.fill = color;
         el.style.fillOpacity = (status === 'original' || !status) ? 0.001 : 0.55;
     });
 }
