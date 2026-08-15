@@ -498,6 +498,16 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="wizard-panel" id="panel-5">
     <div class="card">
         <div class="card-header"><span class="ar">خريطة الهيكل الخارجي</span><span class="en">External Body Map</span></div>
+
+        <div class="form-group" style="max-width:280px;margin-bottom:1rem">
+            <label><span class="ar">هيكل السيارة</span><span class="en">Body Style</span></label>
+            <select id="bodyStyleSelectMirror" onchange="switchBodyStyle(this.value)">
+                <?php foreach (BODY_STYLES as $val => $names): ?>
+                <option value="<?= $val ?>" <?= ($report['body_style'] ?? 'sedan') === $val ? 'selected' : '' ?>><?= $names['ar'] ?> / <?= $names['en'] ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
         <div class="panel-legend" style="margin-bottom:1rem"><?php foreach (PANEL_STATUS as $key => $info): ?><div class="legend-item"><div class="legend-swatch" style="background:<?= $info['color'] ?>"></div><span class="ar"><?= $info['ar'] ?></span> / <span class="en"><?= $info['en'] ?></span></div><?php endforeach; ?>
             <button type="button" class="btn-reset-panels" onclick="resetAllPanels()">
                 <span class="ar">إعادة تعيين الكل</span> / <span class="en">Reset All</span>
@@ -673,6 +683,13 @@ document.querySelectorAll('.diagram-view-tabs .view-tab').forEach(tab => {
 
 // called from the Step 1 body_style <select> onchange
 function switchBodyStyle(newStyle) {
+    // keep both selectors (Step 1 and the Body Map convenience mirror)
+    // in agreement no matter which one triggered the change
+    const main = document.getElementById('bodyStyleSelect');
+    const mirror = document.getElementById('bodyStyleSelectMirror');
+    if (main && main.value !== newStyle) main.value = newStyle;
+    if (mirror && mirror.value !== newStyle) mirror.value = newStyle;
+
     const widget = document.querySelector('.body-diagram-widget');
     if (!widget) return;
     widget.dataset.currentStyle = newStyle;

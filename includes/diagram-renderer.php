@@ -80,6 +80,52 @@ function collapseBodyDiagramImageData(string $svg): string
 }
 
 /**
+ * PDF-only fix: some traced views (currently Right) mirror the Left
+ * view's photo using transform="scale(-1,1)" x="-870" on the <image>
+ * element — perfectly valid SVG, honored correctly by every browser.
+ * But mPDF's svgImage() (vendor/mpdf/mpdf/src/Image/Svg.php) only ever
+ * reads x/y/width/height/preserveAspectRatio/xlink:href off an <image>
+ * — it never looks at a transform attribute on that element at all.
+ * The negative x then lands the whole photo off-canvas, invisible.
+ * Fix: physically flip the JPEG here with GD, drop the transform, and
+ * reset x back to 0 — the image no longer needs any SVG-level mirror
+ * trick to look correct. Web rendering doesn't call this (browsers
+ * never had the bug), only the PDF path does.
+ */
+function unmirrorBodyDiagramImage(string $svg): string
+{
+    return preg_replace_callback(
+        '/<image\b([^>]*?)transform="scale\(-1,\s*1\)"([^>]*?)\/>/s',
+        function ($m) {
+            $attrs = $m[1] . $m[2];
+            if (!preg_match('/xlink:href="data:image\/jpeg;base64,([^"]+)"/', $attrs, $hm)) {
+                return $m[0]; // not a jpeg data URI we recognize — leave untouched
+            }
+            if (!function_exists('imagecreatefromstring') || !function_exists('imageflip')) {
+                return $m[0]; // GD unavailable — leave as-is rather than fatal error
+            }
+            $raw = base64_decode($hm[1]);
+            $im = @imagecreatefromstring($raw);
+            if ($im === false) {
+                return $m[0];
+            }
+            imageflip($im, IMG_FLIP_HORIZONTAL);
+            ob_start();
+            imagejpeg($im, null, 90);
+            $flippedData = ob_get_clean();
+            imagedestroy($im);
+            $flippedB64 = base64_encode($flippedData);
+
+            $newAttrs = preg_replace('/xlink:href="data:image\/jpeg;base64,[^"]+"/', 'xlink:href="data:image/jpeg;base64,' . $flippedB64 . '"', $attrs);
+            $newAttrs = preg_replace('/\bx="-?\d+(\.\d+)?"/', 'x="0"', $newAttrs);
+
+            return '<image' . $newAttrs . '/>';
+        },
+        $svg
+    );
+}
+
+/**
  * Map a body style + view key to its source SVG filename.
  */
 function bodyDiagramSourcePath(string $style, string $view): string
@@ -200,6 +246,7 @@ function renderBodyDiagramForPdf(string $style, string $view, array $panelStatus
     }
     $svg = file_get_contents($path);
     $svg = collapseBodyDiagramImageData($svg);
+    $svg = unmirrorBodyDiagramImage($svg);
 
     $svg = preg_replace('/<\?xml[^>]*\?>\s*/', '', $svg);
     $svg = preg_replace('/<!--.*?-->/s', '', $svg);
@@ -259,21 +306,40 @@ function bodyDiagramDataUri(string $style, string $view, array $panelStatuses): 
 }
 
 /**
- * Convenience: echoes an <img> tag per view (front/left/top/right/back)
- * in a simple HTML table row, sized for a PDF page. Call this directly
- * from pdf/generate.php where the body panel section is built.
+ * Renders the 5 views across 3 rows suited to a portrait-oriented PDF
+ * page: Front+Back together, Left+Right together, Top alone on its own
+ * row (it's a tall/narrow silhouette, not a wide one like the other 4,
+ * so it doesn't pair well side-by-side with anything).
+ * Call this directly from pdf/generate.php where the body panel
+ * section is built.
  */
 function renderBodyDiagramRowForPdf(string $style, array $panelStatuses): void
 {
+    $img = function (string $viewKey) use ($style, $panelStatuses) {
+        $label = BODY_DIAGRAM_VIEWS[$viewKey];
+        $uri = bodyDiagramDataUri($style, $viewKey, $panelStatuses);
+        return '<img src="' . $uri . '" style="width:100%">'
+             . '<div style="font-size:7pt;color:#666">' . $label['ar'] . ' / ' . $label['en'] . '</div>';
+    };
     ?>
-    <table style="margin-bottom:8px">
+    <table style="width:100%;margin-bottom:2px">
     <tr>
-        <?php foreach (BODY_DIAGRAM_VIEWS as $viewKey => $label): ?>
-        <td style="text-align:center;padding:2px 4px;width:20%">
-            <img src="<?= bodyDiagramDataUri($style, $viewKey, $panelStatuses) ?>" style="width:100%">
-            <div style="font-size:7pt;color:#666"><?= $label['ar'] ?> / <?= $label['en'] ?></div>
+        <td style="text-align:center;padding:2px 4px;width:50%"><?= $img('front') ?></td>
+        <td style="text-align:center;padding:2px 4px;width:50%"><?= $img('back') ?></td>
+    </tr>
+    </table>
+    <table style="width:100%;margin-bottom:2px">
+    <tr>
+        <td style="text-align:center;padding:2px 4px;width:50%"><?= $img('left') ?></td>
+        <td style="text-align:center;padding:2px 4px;width:50%"><?= $img('right') ?></td>
+    </tr>
+    </table>
+    <table style="width:100%;margin-bottom:8px">
+    <tr>
+        <td style="text-align:center;padding:2px 4px">
+            <img src="<?= bodyDiagramDataUri($style, 'top', $panelStatuses) ?>" style="width:36%">
+            <div style="font-size:7pt;color:#666"><?= BODY_DIAGRAM_VIEWS['top']['ar'] ?> / <?= BODY_DIAGRAM_VIEWS['top']['en'] ?></div>
         </td>
-        <?php endforeach; ?>
     </tr>
     </table>
     <?php
