@@ -50,6 +50,36 @@ if (!defined('BODY_DIAGRAM_VIEWS')) {
 }
 
 /**
+ * mPDF's own data-URI detector (vendor/mpdf/mpdf/src/Image/ImageProcessor.php)
+ * uses a regex ending in `(.*)` with no DOTALL modifier — `.` does not match
+ * newlines in PCRE by default. Inkscape's Plain SVG export wraps the
+ * embedded car-photo's base64 payload across multiple lines (as literal
+ * `&#10;` entities, which decode to real newlines once PHP reads the file
+ * as XML-ish text). The moment that payload contains a newline, mPDF's
+ * regex silently captures only the first line and truncates the rest —
+ * a corrupted, undecodable image that renders as nothing, while the
+ * vector panel paths (parsed as real XML, not this regex) render fine.
+ * Collapsing the base64 payload to one line here fixes it for mPDF, and
+ * is harmless for the browser too (which never had this bug).
+ */
+function collapseBodyDiagramImageData(string $svg): string
+{
+    return preg_replace_callback(
+        '/(xlink:href="data:image\/[a-zA-Z0-9.+-]+;base64,)([^"]+)(")/s',
+        function ($m) {
+            // at this point the file is still raw text — Inkscape's line
+            // wraps are literal "&#10;"/"&#13;" entity text, not yet
+            // decoded to real newline characters, so \s+ alone misses
+            // them. Strip both forms defensively.
+            $clean = preg_replace('/&#(?:10|13|x0?[ad]);/i', '', $m[2]);
+            $clean = preg_replace('/\s+/', '', $clean);
+            return $m[1] . $clean . $m[3];
+        },
+        $svg
+    );
+}
+
+/**
  * Map a body style + view key to its source SVG filename.
  */
 function bodyDiagramSourcePath(string $style, string $view): string
@@ -98,6 +128,7 @@ function wireBodyDiagramSvg(string $style, string $view): string
         return '<!-- diagram not found: ' . htmlspecialchars($path) . ' -->';
     }
     $svg = file_get_contents($path);
+    $svg = collapseBodyDiagramImageData($svg);
 
     // strip xml declaration, comments, and any inkscape/sodipodi elements
     $svg = preg_replace('/<\?xml[^>]*\?>\s*/', '', $svg);
@@ -168,6 +199,7 @@ function renderBodyDiagramForPdf(string $style, string $view, array $panelStatus
         return '';
     }
     $svg = file_get_contents($path);
+    $svg = collapseBodyDiagramImageData($svg);
 
     $svg = preg_replace('/<\?xml[^>]*\?>\s*/', '', $svg);
     $svg = preg_replace('/<!--.*?-->/s', '', $svg);

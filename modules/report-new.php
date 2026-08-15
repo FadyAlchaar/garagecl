@@ -118,8 +118,8 @@ require_once __DIR__ . '/../includes/header.php';
         ['ar'=>'نتائج الجهاز',    'en'=>'Dyno Results'],
         ['ar'=>'المحرك والهيكل',  'en'=>'Engine & Body'],
         ['ar'=>'الكهرباء والداخل','en'=>'Electrical & Interior'],
-        ['ar'=>'خريطة الهيكل',    'en'=>'Body Map'],
         ['ar'=>'الرسوم البيانية',  'en'=>'Diagrams'],
+        ['ar'=>'خريطة الهيكل',    'en'=>'Body Map'],
     ];
     foreach ($steps as $i => $step):
     ?>
@@ -453,9 +453,49 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- ================================================================
-     STEP 5 — BODY PANEL MAP
+     STEP 5 — DIAGRAMS
      ================================================================ -->
 <div class="wizard-panel" id="panel-4">
+    <div class="card">
+        <div class="card-header">
+            <span class="ar">🖼️ <?= uiText('select_diagrams') ?></span>
+            <span class="en">🖼️ <?= uiText('select_diagrams') ?></span>
+            <small style="font-weight:normal;color:var(--text-muted)">
+                <span class="ar">اختر الرسوم التي تريد إضافتها للتقرير</span>
+                <span class="en">Select diagrams to include in the report</span>
+            </small>
+        </div>
+
+        <?php if (empty($allDiagrams)): ?>
+        <div style="text-align:center;padding:2rem;color:var(--text-muted)">
+            <p><?= uiText('no_diagrams') ?></p>
+            <a href="<?= APP_URL ?>/modules/diagram-upload.php" class="btn btn-primary btn-sm"><?= uiText('upload_diagram') ?></a>
+        </div>
+        <?php else: ?>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem">
+            <?php foreach ($allDiagrams as $d): ?>
+            <?php $checked = in_array($d['id'], $selectedDiagrams); ?>
+            <label class="diagram-select-item" style="border:2px solid <?= $checked ? 'var(--primary)' : 'var(--border)' ?>;border-radius:8px;padding:0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-card)">
+                <input type="checkbox" name="diagrams[]" value="<?= $d['id'] ?>" <?= $checked ? 'checked' : '' ?> style="display:none" onchange="this.parentElement.style.borderColor=this.checked?'var(--primary)':'var(--border)'">
+                <?php if (!empty($d['thumbnail_path']) && file_exists(APP_ROOT . '/' . $d['thumbnail_path'])): ?>
+                <img src="<?= APP_URL . '/' . $d['thumbnail_path'] ?>" alt="<?= $d['name_ar'] ?>" style="max-width:100%;max-height:80px;border-radius:4px">
+                <?php else: ?>
+                <div style="height:80px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:2rem">🖼️</div>
+                <?php endif; ?>
+                <div style="font-size:0.75rem;margin-top:.25rem"><span class="ar"><?= $d['name_ar'] ?></span><br><span class="en" style="font-size:0.65rem;color:var(--text-muted)"><?= $d['name_en'] ?></span></div>
+            </label>
+            <?php endforeach; ?>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem"><span class="ar">✅ حدد الرسوم المطلوبة ثم احفظ التقرير</span><span class="en">Select the diagrams you need and save the report</span></div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- ================================================================
+     STEP 6 — BODY PANEL MAP (last step, per request — may be removed
+     or relocated in the future; leave as final step for now)
+     ================================================================ -->
+<div class="wizard-panel" id="panel-5">
     <div class="card">
         <div class="card-header"><span class="ar">خريطة الهيكل الخارجي</span><span class="en">External Body Map</span></div>
         <div class="panel-legend" style="margin-bottom:1rem"><?php foreach (PANEL_STATUS as $key => $info): ?><div class="legend-item"><div class="legend-swatch" style="background:<?= $info['color'] ?>"></div><span class="ar"><?= $info['ar'] ?></span> / <span class="en"><?= $info['en'] ?></span></div><?php endforeach; ?>
@@ -515,45 +555,6 @@ require_once __DIR__ . '/../includes/header.php';
             <label><span class="ar">الحالة</span> <span class="en">Status</span></label>
             <select name="status"><?php foreach (REPORT_STATUS as $val => $label): ?><option value="<?= $val ?>" <?= ($report['status'] ?? 'draft') === $val ? 'selected' : '' ?>><?= $label['ar'] ?> / <?= $label['en'] ?></option><?php endforeach; ?></select>
         </div>
-    </div>
-</div>
-
-<!-- ================================================================
-     STEP 6 — DIAGRAMS
-     ================================================================ -->
-<div class="wizard-panel" id="panel-5">
-    <div class="card">
-        <div class="card-header">
-            <span class="ar">🖼️ <?= uiText('select_diagrams') ?></span>
-            <span class="en">🖼️ <?= uiText('select_diagrams') ?></span>
-            <small style="font-weight:normal;color:var(--text-muted)">
-                <span class="ar">اختر الرسوم التي تريد إضافتها للتقرير</span>
-                <span class="en">Select diagrams to include in the report</span>
-            </small>
-        </div>
-
-        <?php if (empty($allDiagrams)): ?>
-        <div style="text-align:center;padding:2rem;color:var(--text-muted)">
-            <p><?= uiText('no_diagrams') ?></p>
-            <a href="<?= APP_URL ?>/modules/diagram-upload.php" class="btn btn-primary btn-sm"><?= uiText('upload_diagram') ?></a>
-        </div>
-        <?php else: ?>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem">
-            <?php foreach ($allDiagrams as $d): ?>
-            <?php $checked = in_array($d['id'], $selectedDiagrams); ?>
-            <label class="diagram-select-item" style="border:2px solid <?= $checked ? 'var(--primary)' : 'var(--border)' ?>;border-radius:8px;padding:0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-card)">
-                <input type="checkbox" name="diagrams[]" value="<?= $d['id'] ?>" <?= $checked ? 'checked' : '' ?> style="display:none" onchange="this.parentElement.style.borderColor=this.checked?'var(--primary)':'var(--border)'">
-                <?php if (!empty($d['thumbnail_path']) && file_exists(APP_ROOT . '/' . $d['thumbnail_path'])): ?>
-                <img src="<?= APP_URL . '/' . $d['thumbnail_path'] ?>" alt="<?= $d['name_ar'] ?>" style="max-width:100%;max-height:80px;border-radius:4px">
-                <?php else: ?>
-                <div style="height:80px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:2rem">🖼️</div>
-                <?php endif; ?>
-                <div style="font-size:0.75rem;margin-top:.25rem"><span class="ar"><?= $d['name_ar'] ?></span><br><span class="en" style="font-size:0.65rem;color:var(--text-muted)"><?= $d['name_en'] ?></span></div>
-            </label>
-            <?php endforeach; ?>
-        </div>
-        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem"><span class="ar">✅ حدد الرسوم المطلوبة ثم احفظ التقرير</span><span class="en">Select the diagrams you need and save the report</span></div>
-        <?php endif; ?>
     </div>
 </div>
 
