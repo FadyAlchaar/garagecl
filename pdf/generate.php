@@ -315,7 +315,9 @@ ob_start();
                     $theta1 = deg2rad(-147.0);
                     $dtheta = deg2rad(114.0);
                     $totalSegments = 40;
-                    $segmentsToShow = (int) round($totalSegments * max(0, min(100, $pct)) / 100);
+                    // always draw the full arc in gradient — the needle
+                    // (drawn separately below) is what indicates the
+                    // actual percentage, the arc itself is just the scale
 
                     $stops = [[0.0, [0xdc, 0x26, 0x26]], [0.5, [0xca, 0x8a, 0x04]], [1.0, [0x16, 0xa3, 0x4a]]];
                     $colorAt = function (float $f) use ($stops): string {
@@ -334,7 +336,7 @@ ob_start();
                     };
 
                     $out = '';
-                    for ($i = 0; $i < $segmentsToShow; $i++) {
+                    for ($i = 0; $i < $totalSegments; $i++) {
                         $tA = $theta1 + $dtheta * ($i / $totalSegments);
                         $tB = $theta1 + $dtheta * (($i + 1) / $totalSegments);
                         $x1 = $cx + $r * cos($tA);
@@ -573,6 +575,8 @@ $pdfDiagrams = $stmt->fetchAll();
 </table>
 <?php endif; ?>
 
+<div style="page-break-inside:avoid;">
+
 <!-- Legend -->
 <table style="margin-bottom:10px">
 <tr>
@@ -588,21 +592,24 @@ $pdfDiagrams = $stmt->fetchAll();
 <!-- Body Panel Diagram (5 views, colored from saved statuses) -->
 <?php renderBodyDiagramRowForPdf($report['body_style'] ?? 'sedan', $panels); ?>
 
+</div>
+<div style="page-break-after:always;"></div>
+
 <?php
 $bodyPanelGroupsPdf = [
     ['title_ar'=>'يمين','title_en'=>'Right Side','keys'=>[
         'right_front_fender','right_front_door','right_rear_door','right_rear_fender',
-        'right_sill','right_a_pillar','right_b_pillar','roof',
+        'right_sill','right_a_pillar','right_b_pillar',
         'right_c_pillar','right_d_pillar','right_platform','right_chassis',
     ]],
     ['title_ar'=>'يسار','title_en'=>'Left Side','keys'=>[
         'left_front_fender','left_front_door','left_rear_door','left_rear_fender',
-        'left_sill','left_a_pillar','left_b_pillar','roof',
+        'left_sill','left_a_pillar','left_b_pillar',
         'left_c_pillar','left_d_pillar','left_platform','left_chassis',
     ]],
     ['title_ar'=>'فوق','title_en'=>'Top','keys'=>['hood','roof','trunk']],
     ['title_ar'=>'أمام / خلف','title_en'=>'Front / Rear','keys'=>[
-        'trunk','rear_panel','trunk_floor','rear_bumper','front_bumper','front_panel',
+        'rear_panel','trunk_floor','rear_bumper','front_bumper','front_panel',
     ]],
 ];
 ?>

@@ -323,10 +323,8 @@ function bodyDiagramDataUri(string $style, string $view, array $panelStatuses): 
 function renderBodyDiagramRowForPdf(string $style, array $panelStatuses): void
 {
     $img = function (string $viewKey) use ($style, $panelStatuses) {
-        $label = BODY_DIAGRAM_VIEWS[$viewKey];
         $uri = bodyDiagramDataUri($style, $viewKey, $panelStatuses);
-        return '<img src="' . $uri . '" style="width:100%">'
-             . '<div style="font-size:7pt;color:#666">' . $label['ar'] . ' / ' . $label['en'] . '</div>';
+        return '<img src="' . $uri . '" style="width:100%">';
     };
     ?>
     <table style="width:100%;margin-bottom:2px">
@@ -345,7 +343,6 @@ function renderBodyDiagramRowForPdf(string $style, array $panelStatuses): void
     <tr>
         <td style="text-align:center;padding:2px 4px">
             <img src="<?= bodyDiagramDataUri($style, 'top', $panelStatuses) ?>" style="width:36%">
-            <div style="font-size:7pt;color:#666"><?= BODY_DIAGRAM_VIEWS['top']['ar'] ?> / <?= BODY_DIAGRAM_VIEWS['top']['en'] ?></div>
         </td>
     </tr>
     </table>

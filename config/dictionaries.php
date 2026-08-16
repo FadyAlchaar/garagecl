@@ -634,16 +634,23 @@ if (!function_exists('getBodyPanelGroups')) {
         $groupKeys = [
             'right' => [
                 'right_front_fender', 'right_front_door', 'right_rear_door', 'right_rear_fender',
-                'right_sill', 'right_a_pillar', 'right_b_pillar', 'roof',        // was right_roof_rail
+                'right_sill', 'right_a_pillar', 'right_b_pillar',
                 'right_c_pillar', 'right_d_pillar', 'right_platform', 'right_chassis'
             ],
             'left' => [
                 'left_front_fender', 'left_front_door', 'left_rear_door', 'left_rear_fender',
-                'left_sill', 'left_a_pillar', 'left_b_pillar', 'roof',           // was left_roof_rail
+                'left_sill', 'left_a_pillar', 'left_b_pillar',
                 'left_c_pillar', 'left_d_pillar', 'left_platform', 'left_chassis'
             ],
-            'top' => ['hood', 'roof', 'trunk'],                                   // was trunk_top
-            'front_rear' => ['trunk', 'rear_panel', 'trunk_floor', 'rear_bumper', 'front_bumper', 'front_panel'] // was trunk_door
+            // 'roof' and 'trunk' are single shared keys across every view (merged
+            // per an earlier decision) — each must appear in exactly ONE group,
+            // or duplicate <select name="body[roof][status]"> fields get rendered.
+            // HTML silently keeps only the LAST duplicate-named field's value on
+            // submit, so any edit made through an earlier duplicate (or via the
+            // diagram, which only syncs the FIRST matching field) gets discarded
+            // at save time — exactly the "painted but didn't save" bug.
+            'top' => ['hood', 'roof', 'trunk'],
+            'front_rear' => ['rear_panel', 'trunk_floor', 'rear_bumper', 'front_bumper', 'front_panel']
         ];
 
         foreach ($groupKeys as $groupKey => $keys) {
