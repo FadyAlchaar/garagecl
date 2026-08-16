@@ -199,10 +199,14 @@ function wireBodyDiagramSvg(string $style, string $view): string
         // shape's style="" attribute. An inline style attribute always
         // beats setAttribute('fill', ...) from JS, so paint would silently
         // fail (or worse, always render the shape's original trace color).
-        // Strip just those two properties here — stroke/etc. are left
-        // alone — so the CSS class + click-to-paint JS fully control fill.
+        // Strip those, AND the baked-in stroke — Inkscape assigned each
+        // shape's stroke color/width independently across many tracing
+        // sessions (mostly black, sometimes white), so left alone they
+        // show up as inconsistent thick borders. The .panel-clickable CSS
+        // class now owns stroke entirely, so every shape looks the same.
         $tag = preg_replace('/\bfill\s*:\s*[^;"]+;?/i', '', $tag);
         $tag = preg_replace('/\bfill-opacity\s*:\s*[^;"]+;?/i', '', $tag);
+        $tag = preg_replace('/\bstroke[a-z-]*\s*:\s*[^;"]+;?/i', '', $tag);
 
         // strip any pre-existing class="" / data-panel="" first — some
         // shapes (bumper halves) already carry a leftover data-panel
@@ -260,19 +264,22 @@ function renderBodyDiagramForPdf(string $style, string $view, array $panelStatus
         }
         $panelKey = resolveBodyPanelKey($idm[1]);
 
-        // strip the baked-in trace fill/fill-opacity from the EXISTING
-        // style="" attribute (there may be no style attribute at all, in
-        // which case this is a no-op and one gets added below)
+        // strip the baked-in trace fill/fill-opacity/stroke from the
+        // EXISTING style="" attribute (there may be no style attribute at
+        // all, in which case this is a no-op and one gets added below).
+        // Print has no hover state, so stroke is always fully removed
+        // here — only the fill color communicates status.
         $tag = preg_replace('/\bfill\s*:\s*[^;"]+;?/i', '', $tag);
         $tag = preg_replace('/\bfill-opacity\s*:\s*[^;"]+;?/i', '', $tag);
+        $tag = preg_replace('/\bstroke[a-z-]*\s*:\s*[^;"]+;?/i', '', $tag);
 
         $newFillCss = ($panelKey === null)
-            ? 'fill:none;'
+            ? 'fill:none;stroke:none;'
             : (function () use ($panelKey, $panelStatuses) {
                 $status = $panelStatuses[$panelKey]['status'] ?? 'original';
                 $color = function_exists('panelColor') ? panelColor($status) : '#ffffff';
                 $opacity = ($status === 'original' || !$status) ? 0.03 : 0.62;
-                return 'fill:' . $color . ';fill-opacity:' . $opacity . ';';
+                return 'fill:' . $color . ';fill-opacity:' . $opacity . ';stroke:none;';
             })();
 
         if (preg_match('/style="([^"]*)"/', $tag, $sm)) {

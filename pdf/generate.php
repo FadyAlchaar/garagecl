@@ -297,21 +297,60 @@ ob_start();
             $angle = -90 + ($pct / 100) * 180;
             ?>
             <svg width="140" height="100" viewBox="0 0 140 100" xmlns="http://www.w3.org/2000/svg">
-                <!-- DEFINITIONS (MUST BE FIRST) -->
-                <defs>
-                    <linearGradient id="gaugeGradPdf" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#dc2626" />
-                        <stop offset="50%" stop-color="#ca8a04" />
-                        <stop offset="100%" stop-color="#16a34a" />
-                    </linearGradient>
-                </defs>
-
                 <!-- Background arc -->
                 <path d="M18,85 A62,62 0 0,1 122,85" fill="none" stroke="#e5e7eb" stroke-width="12" stroke-linecap="round"/>
 
-                <!-- Colored arc (using gradient from defs) -->
-                <path d="M18,85 A62,62 0 0,1 122,85" fill="none" stroke="url(#gaugeGradPdf)" stroke-width="12" stroke-linecap="round" 
-                      stroke-dasharray="<?= $dashArray ?> 195"/>
+                <?php
+                // mPDF cannot render a gradient stroke (stroke="url(#...)") —
+                // its own SVG parser has that code path commented out with
+                // "// Cannot put a gradient on a 'stroke' in PDF?"
+                // (vendor/mpdf/mpdf/src/Image/Svg.php ~line 1394). It falls
+                // back to no color at all, which reads as flat gray.
+                // Workaround: draw the colored arc as many short solid-color
+                // segments instead of one gradient-stroked path — each
+                // segment IS a flat stroke color, which mPDF renders fine —
+                // close enough spacing reads as a smooth gradient.
+                function pdfGaugeSegments(float $pct): string {
+                    $cx = 70.0; $cy = 118.76; $r = 62.0;
+                    $theta1 = deg2rad(-147.0);
+                    $dtheta = deg2rad(114.0);
+                    $totalSegments = 40;
+                    $segmentsToShow = (int) round($totalSegments * max(0, min(100, $pct)) / 100);
+
+                    $stops = [[0.0, [0xdc, 0x26, 0x26]], [0.5, [0xca, 0x8a, 0x04]], [1.0, [0x16, 0xa3, 0x4a]]];
+                    $colorAt = function (float $f) use ($stops): string {
+                        for ($i = 0; $i < count($stops) - 1; $i++) {
+                            [$o1, $c1] = $stops[$i];
+                            [$o2, $c2] = $stops[$i + 1];
+                            if ($f >= $o1 && $f <= $o2) {
+                                $t = ($o2 - $o1) > 0 ? ($f - $o1) / ($o2 - $o1) : 0;
+                                $r = round($c1[0] + ($c2[0] - $c1[0]) * $t);
+                                $g = round($c1[1] + ($c2[1] - $c1[1]) * $t);
+                                $b = round($c1[2] + ($c2[2] - $c1[2]) * $t);
+                                return sprintf('#%02x%02x%02x', $r, $g, $b);
+                            }
+                        }
+                        return '#16a34a';
+                    };
+
+                    $out = '';
+                    for ($i = 0; $i < $segmentsToShow; $i++) {
+                        $tA = $theta1 + $dtheta * ($i / $totalSegments);
+                        $tB = $theta1 + $dtheta * (($i + 1) / $totalSegments);
+                        $x1 = $cx + $r * cos($tA);
+                        $y1 = $cy + $r * sin($tA);
+                        $x2 = $cx + $r * cos($tB);
+                        $y2 = $cy + $r * sin($tB);
+                        $color = $colorAt($i / $totalSegments);
+                        $out .= sprintf(
+                            '<path d="M%.2F,%.2F A%.2F,%.2F 0 0,1 %.2F,%.2F" fill="none" stroke="%s" stroke-width="12" stroke-linecap="round"/>',
+                            $x1, $y1, $r, $r, $x2, $y2, $color
+                        );
+                    }
+                    return $out;
+                }
+                echo pdfGaugeSegments($pct);
+                ?>
 
                 <!-- Needle -->
                 <line x1="70" y1="85" x2="70" y2="27" stroke="#1a1a2e" stroke-width="2.5" stroke-linecap="round" 
@@ -539,7 +578,7 @@ $pdfDiagrams = $stmt->fetchAll();
 <tr>
 <?php foreach (PANEL_STATUS as $key => $info): ?>
 <td style="text-align:center;padding:3px 5px">
-    <span style="display:inline-block;width:14px;height:14px;background:<?= $info['color'] ?>;border:1px solid #ccc;vertical-align:middle"></span>
+    <table style="display:inline-table;vertical-align:middle"><tr><td style="width:14px;height:14px;background:<?= $info['color'] ?>;border:1px solid #ccc"></td></tr></table>
     <span style="font-size:8pt"> <?= $info['ar'] ?> / <?= $info['en'] ?></span>
 </td>
 <?php endforeach; ?>

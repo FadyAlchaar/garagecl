@@ -651,6 +651,7 @@ function resetAllPanels() {
         sel.value = 'original';
         sel.dispatchEvent(new Event('change'));
     });
+    document.querySelectorAll('.panel-clickable').forEach(p => p.classList.remove('selected'));
 }
 
 // ---- BODY DIAGRAM WIDGET ----
@@ -728,12 +729,19 @@ document.querySelectorAll('.popover-swatch').forEach(sw => {
             select.value = status;
             select.dispatchEvent(new Event('change'));
         }
+        // the '.selected' border is only meant to show which panel the
+        // popover is currently editing — clear it once a choice is made,
+        // or it stays as a permanent thick outline on every painted panel
+        document.querySelectorAll('.panel-clickable').forEach(p => p.classList.remove('selected'));
+        popoverPanelKey = null;
         popover.classList.add('hidden');
     });
 });
 
 document.addEventListener('click', (e) => {
     if (!popover.contains(e.target) && !e.target.classList.contains('panel-clickable')) {
+        document.querySelectorAll('.panel-clickable').forEach(p => p.classList.remove('selected'));
+        popoverPanelKey = null;
         popover.classList.add('hidden');
     }
 });
